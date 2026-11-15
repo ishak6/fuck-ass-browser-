@@ -19,25 +19,25 @@ class FilterListTest {
     }
 
     @Test fun resourceTypeAndDomainOptionsAreApplied() {
-        val list = FilterList.parse("||cdn.example^$script,domain=news.example")
+        val list = FilterList.parse("||cdn.example^\$script,domain=news.example")
         assertTrue(list.shouldBlock("https://cdn.example/a.js", "script", "https://news.example"))
         assertFalse(list.shouldBlock("https://cdn.example/a.png", "image", "https://news.example"))
         assertFalse(list.shouldBlock("https://cdn.example/a.js", "script", "https://other.example"))
     }
 
     @Test fun thirdPartyOptionRequiresTopLevelOrigin() {
-        val list = FilterList.parse("||tracker.example^$third-party")
+        val list = FilterList.parse("||tracker.example^\$third-party")
         assertTrue(list.shouldBlock("https://tracker.example/pixel", "image", "https://publisher.example"))
         assertFalse(list.shouldBlock("https://tracker.example/pixel", "image", "https://tracker.example"))
         assertFalse(list.shouldBlock("https://tracker.example/pixel", "image", null))
     }
 
     @Test fun unsupportedSyntaxIsIgnored() {
-        val list = FilterList.parse("||ads.example^$script,important\n/regex/")
+        val list = FilterList.parse("||ads.example^\$script,important\n/regex/")
         assertFalse(list.shouldBlock("https://ads.example/a.js", "script", "https://news.example"))
     }
 
-    @Test fun malformedAndOversizedHostRulesAreIgnored() {
+    @Test fun parserRejectsWildcardPathAndBoundsInput() {\n        val list = FilterList.parse("||ads.example/a*")\n        assertFalse(list.shouldBlock("https://ads.example/anything", "image", "https://news.example"))\n    }\n\n    @Test(expected = IllegalArgumentException::class) fun rejectsOversizedInput() {\n        FilterList.parse("x".repeat(5 * 1024 * 1024 + 1))\n    }\n\n    @Test fun malformedAndOversizedHostRulesAreIgnored() {
         val list = FilterList.parse("||../bad^\n||ads.example^")
         assertTrue(list.shouldBlock("https://ads.example/a", "image", "https://news.example"))
     }

@@ -152,8 +152,9 @@ class HtmlTokenizer(
                     if (i < source.length) i++
                 } else {
                     val valueStart = i
-                    while (i < source.length && !source[i].isWhitespace() && source[i] != '>') i++
-                    value = source.substring(valueStart, i).trimEnd('/')
+                    while (i < source.length && !source[i].isWhitespace() && source[i] != '>' &&
+                        !(source[i] == '/' && i + 1 < source.length && source[i + 1] == '>')) i++
+                    value = source.substring(valueStart, i)
                 }
             }
             if (attributes.size < limits.maxAttributesPerTag && attrName !in attributes) {

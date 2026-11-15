@@ -182,5 +182,10 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 - M10: normal bookmarks/history use bounded file-backed storage; private history remains memory-only; private-profile collections have explicit size/count budgets.
 - M11: native back/forward/refresh, bookmark save/open, normal/private history menus and always-private site control integrated. Full tab manager, app lock, permission UX and instrumented UI tests remain pending.
 - Successful CI: run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763268460 passed build, unit tests, lint and APK upload on commit `a00ee7552a`; run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763237046 passed all four gates on commit `057f5a2393`.
-- Newer commits for history ordering and private-routing unit tests are still running in Actions; do not treat the above successful runs as validation of those later commits.
+- History ordering and private-routing helper changes passed CI on run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763492817 (commit `8f2be5713b`); build, unit tests, lint and APK upload succeeded.
 - M12 final clean release, full integration/security/performance audit, signing readiness and device compatibility matrix remain outstanding.
+## M12 validation infrastructure added
+- Added Android instrumentation test that toggles private mode and verifies `FLAG_SECURE` is enabled/cleared.
+- Android CI now provisions a headless API 35 Google APIs emulator and runs `connectedDebugAndroidTest` after build/unit/lint.
+- Added CodeQL v4 workflow for Java/Kotlin with manual Gradle build mode and weekly scheduled scans.
+- These new emulator and CodeQL jobs are pending their first completed run; no emulator or CodeQL success is claimed yet.

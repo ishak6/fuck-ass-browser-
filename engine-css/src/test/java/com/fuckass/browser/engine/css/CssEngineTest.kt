@@ -22,8 +22,8 @@ class CssEngineTest {
         )
         val p = document.getElementsByTagName("p").single()
         val parser = CssParser()
-        assertTrue(parser.parse("main p.note").single().selectors.single().matches(p))
-        assertTrue(parser.parse("p#intro.large[data-kind=x]").single().selectors.single().matches(p))
+        assertTrue(parser.parse("main p.note { color: red }").single().selectors.single().matches(p))
+        assertTrue(parser.parse("p#intro.large[data-kind=x] { color: red }").single().selectors.single().matches(p))
         assertFalse(parser.parse("section p { color: red }").single().selectors.single().matches(p))
     }
 

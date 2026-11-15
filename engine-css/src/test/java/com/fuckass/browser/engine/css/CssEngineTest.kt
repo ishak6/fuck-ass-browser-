@@ -27,6 +27,22 @@ class CssEngineTest {
         assertFalse(parser.parse("section p { color: red }").single().selectors.single().matches(p))
     }
 
+    @Test fun commentsDoNotBreakBlocksAndCommasInsideAttributes() {
+        val css = "/* ignored { ; } */ p[data-label='a,b'] { color: red; /* } ; */ background-color: blue }"
+        val rule = CssParser().parse(css).single()
+        assertEquals(1, rule.selectors.size)
+        assertEquals(2, rule.declarations.size)
+        val document = HtmlTreeBuilder().build(
+            HtmlTokenizer().tokenize("<p data-label='a,b'>Hello</p>")
+        )
+        assertTrue(rule.selectors.single().matches(document.getElementsByTagName("p").single()))
+    }
+
+    @Test fun commentMarkersInsideQuotedCssValuesArePreserved() {
+        val rule = CssParser().parse("p { content: '/* keep */'; color: red }").single()
+        assertEquals("'/* keep */'", rule.declarations.first().value)
+    }
+
     @Test fun unsupportedPseudoAndChildCombinatorsAreSkipped() {
         val rules = CssParser().parse("p:hover { color:red } main > p { color:blue } p { color:green }")
         assertEquals(1, rules.size)

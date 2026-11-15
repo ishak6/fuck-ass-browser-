@@ -7,6 +7,7 @@ import com.fuckass.browser.privacy.RequestPrivacyPolicy
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.IOException
+import java.net.CookieManager
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URI
@@ -62,7 +63,8 @@ class BrowserNetworkException(message: String, cause: Throwable? = null) : IOExc
 class BrowserHttpClient(
     private val limits: NetworkLimits = NetworkLimits(),
     private val privacyPolicy: RequestPrivacyPolicy = NoOpRequestPrivacyPolicy,
-    private val filterPolicy: NetworkFilterPolicy = AllowAllNetworkFilterPolicy
+    private val filterPolicy: NetworkFilterPolicy = AllowAllNetworkFilterPolicy,
+    private val cookieManager: CookieManager? = null
 ) : Closeable {
     private data class CacheEntry(val response: BrowserHttpResponse, val expiresAtMs: Long)
     private val closed = AtomicBoolean(false)
@@ -91,6 +93,10 @@ class BrowserHttpClient(
         activeConnections.toList().forEach { connection ->
             runCatching { connection.disconnect() }
         }
+    }
+
+    fun clearCookies() {
+        cookieManager?.cookieStore?.removeAll()
     }
 
     @Synchronized
@@ -146,6 +152,13 @@ class BrowserHttpClient(
                 connection.setRequestProperty("Accept-Encoding", "gzip")
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
                 headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
+                cookieManager?.get(current.toURI(), headers)?.forEach { (name, values) ->
+                    if (name.equals("Cookie", true)) {
+                        connection.setRequestProperty(name, values.joinToString("; "))
+                    } else {
+                        values.forEach { value -> connection.addRequestProperty(name, value) }
+                    }
+                }
                 if (currentMethod == "POST") {
                     connection.doOutput = true
                     connection.setFixedLengthStreamingMode(currentBody!!.size)
@@ -193,6 +206,7 @@ class BrowserHttpClient(
                     .filterKeys { it != null }
                     .mapKeys { it.key ?: "" }
                     .mapValues { it.value?.toList() ?: emptyList() }
+                cookieManager?.put(current.toURI(), responseHeaders)
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)
                 if (method == "GET" && request.useCache && status == 200 && CachePolicy.isCacheSafe(responseHeaders)) {
                     store(cacheKey, response, CachePolicy.lifetimeMs(responseHeaders))

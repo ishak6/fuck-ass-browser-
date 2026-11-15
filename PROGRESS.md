@@ -4,16 +4,16 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 
 | Feature | Module | Status | Test that proves it |
 |---|---|---|---|
-| HTML tokenizer | :engine-html | Not started | HTML tokenizer fixtures |
-| HTML tree builder | :engine-html | Not started | Tree-construction fixtures |
-| DOM | :engine-html | Not started | DOM traversal/mutation tests |
-| CSS parser | :engine-css | Not started | CSS syntax fixtures |
-| CSS selectors | :engine-css | Not started | Selector corpus |
-| CSS cascade/computed style | :engine-css | Not started | Cascade golden fixtures |
-| JavaScript interpreter | :engine-js | Not started | ECMAScript subset suite |
+| HTML tokenizer | :engine-html | Partial | Bounded tokenizer fixtures; HTML5 conformance subset incomplete | HTML tokenizer fixtures |
+| HTML tree builder | :engine-html | Partial | Bounded tree construction and DOM traversal fixtures; WHATWG modes incomplete | Tree-construction fixtures |
+| DOM | :engine-html | Partial | Basic tree traversal and mutation tests | DOM traversal/mutation tests |
+| CSS parser | :engine-css | Partial | Bounded rule/declaration parser fixtures | CSS syntax fixtures |
+| CSS selectors | :engine-css | Partial | Compound and descendant selector fixtures; limited subset | Selector corpus |
+| CSS cascade/computed style | :engine-css | Partial | Specificity/importance/inheritance fixtures; layout integration pending | Cascade golden fixtures |
+| JavaScript interpreter | :engine-js | Partial | Primitive statement/expression interpreter and budget tests; not ECMAScript compliant | ECMAScript subset suite |
 | DOM JS bindings | :engine-js | Not started | Host binding integration tests |
-| Layout engine | :engine-render | Not started | Geometry golden tests |
-| Rendering/drawing | :engine-render | Not started | Pixel/display-list golden tests |
+| Layout engine | :engine-render | Partial | Initial block/inline geometry tests; no full CSS formatting contexts | Geometry golden tests |
+| Rendering/drawing | :engine-render | Partial | Android Canvas display-list backend; device pixel tests pending | Pixel/display-list golden tests |
 | Hardware acceleration | :engine-render | Not started | Device benchmark + correctness |
 | Networking HTTP | :engine-net | Partial | Transport implemented; local HTTPS/redirect integration tests pending |
 | TLS validation | :engine-net | Partial | Platform TLS trust/hostname verification used; valid/invalid certificate integration tests pending |
@@ -49,8 +49,8 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Auto-clear history/cookies | :privacy/:storage | Not started | Deletion trigger tests |
 | Cache control | :privacy/:engine-net | Not started | Clear/retain tests |
 | Permission manager/dashboard | :privacy/:app | Not started | Permission state/UI tests |
-| Tracking parameter removal | :privacy | Not started | utm_ and fbclid fixtures |
-| Referrer trimming | :privacy | Not started | Request header tests |
+| Tracking parameter removal | :privacy | Partial | utm_/click-id removal fixtures; provider-specific coverage pending | utm_ and fbclid fixtures |
+| Referrer trimming | :privacy | Partial | Origin/same-origin/none policy fixtures | Request header tests |
 | VPN/Tor integration | :privacy | Not started | Routing/leak tests; not Tor Browser equivalence |
 | Smooth video streaming | :media | Not started | Supported stream device tests |
 | Fullscreen/landscape | :media/:app | Not started | Instrumented orientation/fullscreen tests |
@@ -91,33 +91,33 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Website security information | :app/:engine-net | Not started | TLS/origin display tests |
 | Phishing/malware warning | :privacy/:diagnostics | Not started | Threat-list fixture tests |
 | App lock PIN/biometric | :app/:storage | Not started | Biometric instrumentation |
-| SearchProvider interface | :search | Not started | Provider contract tests |
-| DuckDuckGo provider | :search | Not started | Saved result fixture |
-| Google provider | :search | Not started | Legal result-page/API integration test |
+| SearchProvider interface | :search | Partial | HTTPS URL provider contract and encoding tests | Provider contract tests |
+| DuckDuckGo provider | :search | Partial | HTTPS result URL fixture | Saved result fixture |
+| Google provider | :search | Partial | HTTPS result URL fixture; no scraping | Legal result-page/API integration test |
 | Brave Search provider | :search | Not started | Official API fixture; Needs API key where required |
-| Bing provider | :search | Not started | Official API/result-page fixture |
-| Startpage provider | :search | Not started | Normal result-page integration fixture |
+| Bing provider | :search | Partial | HTTPS result URL fixture; no scraping | Official API/result-page fixture |
+| Startpage provider | :search | Partial | HTTPS result URL fixture | Normal result-page integration fixture |
 | Yahoo provider | :search | Not started | Result-page fixture |
-| Ecosia provider | :search | Not started | Result-page fixture |
-| Qwant provider | :search | Not started | Result-page fixture |
-| Mojeek provider | :search | Not started | Result-page fixture |
-| Yandex provider | :search | Not started | Result-page fixture |
-| Wikipedia provider | :search | Not started | API fixture |
+| Ecosia provider | :search | Partial | HTTPS result URL fixture | Result-page fixture |
+| Qwant provider | :search | Partial | HTTPS result URL fixture | Result-page fixture |
+| Mojeek provider | :search | Partial | HTTPS result URL fixture | Result-page fixture |
+| Yandex provider | :search | Partial | HTTPS result URL fixture | Result-page fixture |
+| Wikipedia provider | :search | Partial | HTTPS search URL fixture; API integration pending | API fixture |
 | YouTube provider | :search | Not started | Legal result-page/API fixture |
-| User URL-template search | :search | Not started | Template encoding tests |
+| User URL-template search | :search | Partial | Query encoding and HTTPS validation tests | Template encoding tests |
 | Quick-switch mode | :search/:app | Not started | Provider selection tests |
 | Merged meta-search | :search | Not started | Parallel timeout/dedup/RRF fixtures |
 | One-tab-per-engine | :search/:app | Not started | Tab routing tests |
 | Source badges | :search/:app | Not started | Result attribution UI tests |
-| Meta-search warning/opt-in | :search/:app | Not started | Default-off preference/UI test |
-| Bang shortcuts | :search | Not started | !g, !ddg, !w parsing tests |
+| Meta-search warning/opt-in | :search/:app | Partial | Default-off setting model; UI disclosure pending | Default-off preference/UI test |
+| Bang shortcuts | :search | Partial | !g, !ddg, !b, !w parser fixtures | !g, !ddg, !w parsing tests |
 | Search timeout/rate-limit/offline | :search | Not started | Deterministic failure fixtures |
 | GitHub Actions build | CI | Not started | Successful workflow run |
 | Debug APK artifact | CI | Not started | APK artifact download/inspection |
 | Release APK | CI | Not started | Signed APK verification |
 | Installation testing | CI/:app | Not started | Emulator install and launch |
 
-| Private-site rules (user-defined always-private list) | :privacy/:storage/:app | Not started | Rule precedence and auto-private tab routing tests |
+| Private-site rules (user-defined always-private list) | :privacy/:storage/:app | Partial | Exact/subdomain in-memory matcher tests; persisted UI routing pending | Rule precedence and auto-private tab routing tests |
 | Isolated private tab profile | :privacy/:storage | Not started | Storage inspection proves no history, cookies, cache, form data or download-list persistence |
 | Private-tab close cleanup | :privacy/:storage | Not started | Close-tab storage inspection test |
 | Panic button (close all private tabs + wipe) | :privacy/:storage/:app | Not started | Panic action test verifies all ephemeral stores are empty |
@@ -146,3 +146,19 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | YouTube filter-list daily updates | :adblock | Not started | Scheduled update, signature/hash validation, rollback and stale-list tests |
 | YouTube filter health warning and one-tap refresh | :adblock/:app | Not started | Stale/broken-list state and refresh UI tests |
 | YouTube ad blocking on real pages | :adblock/:engine-js/:engine-render | Partial | Not verified on device; dated manual video-start, mid-roll, banner and Shorts checklist required |
+
+
+## Pipelined M0-M11 implementation snapshot — 2026-11-16
+- M0-M1: architecture, multi-module skeleton, Compose shell and CI verified earlier.
+- M2: HTTPS-only transport, redirect controls, bounded cache and policy hooks remain Partial; real TLS/redirect/device integration remains pending.
+- M3: bounded Adblock Plus network-rule subset parser is implemented and its latest parser CI run #21 passed. It is not full EasyList/AdGuard/uBO compatibility and does not provide YouTube page/cosmetic/scriptlet filtering.
+- M4: URL tracking cleanup, referrer controls and exact/subdomain private-site matcher implemented as a partial policy layer. Persistence, cookie jar integration and automatic private-tab routing remain pending.
+- M5: HTTPS result-page URL adapters, provider selection model, bang shortcuts and meta-search default-off setting implemented. Provider API integrations, result parsing/ranking, timeout/offline handling and user-facing disclosure UI remain pending.
+- M6: bounded HTML tokenizer, simplified tree builder and minimal DOM traversal/mutation implemented. Not a WHATWG-complete HTML5 parser.
+- M7: bounded CSS rule/declaration parser, compound/descendant selectors and basic cascade implemented. Pseudo selectors, child/sibling combinators, full CSS values and standards conformance remain unsupported.
+- M8: initial block/inline layout and Android Canvas display-list renderer implemented. Device rendering, scrolling correctness, text shaping, wrapping, flex/grid and performance tests remain pending.
+- M9: primitive JavaScript-like interpreter with statement/token/step/depth budgets implemented. It is not full ECMAScript and is not yet wired to DOM/page script execution.
+- M10: memory-only private profile store, playback state controller and basic reader-mode extraction implemented. Durable bookmark/history store, Android Keystore, MediaCodec pipeline, PiP, subtitles and device tests remain pending.
+- M11: Compose browser shell integrates HTTPS navigation, search provider selection, first-party HTML/CSS layout and Canvas drawing; private mode clears in-memory profile, uses FLAG_SECURE and shows IP disclosure. Tab persistence, app lock, neutral launcher identity, full settings/permissions UI and instrumented tests remain pending.
+- Current verification is being driven by GitHub Actions. No local Android SDK/emulator is available; no physical-device tests are claimed.
+- The first CI runs after new modules exposed test-fixture and Compose integration errors. Fixes have been committed; the latest consolidated workflow must pass before any milestone is marked verified.

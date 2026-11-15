@@ -75,6 +75,12 @@ class BrowserPrivacyPolicyTest {
         assertFalse(rules.matches("https://private.example.attacker.test/"))
     }
 
+    @Test fun privateSiteRulesNormalizeInternationalizedDomainNames() {
+        val rules = PrivateSiteRules(setOf("bücher.example", "invalid host", "https://bad.example"))
+        assertTrue(rules.matches("https://xn--bcher-kva.example/account"))
+        assertFalse(rules.matches("https://bad.example/account"))
+    }
+
     @Test fun privateModeRoutingUsesConfiguredRules() {
         val policy = BrowserPrivacyPolicy(privateSites = PrivateSiteRules(setOf("example.org")))
         assertTrue(policy.shouldOpenInPrivateMode("https://login.example.org/"))

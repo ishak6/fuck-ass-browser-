@@ -214,6 +214,54 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun urlOnlyCacheIsBypassedForCookieJarAndAuthorizationRequests() {
+        val cookieClient = BrowserHttpClient(
+            cookieManager = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        )
+        var cookieConnections = 0
+        cookieClient.connectionFactory = { url ->
+            cookieConnections++
+            FakeConnection(
+                url, 200,
+                mapOf("Cache-Control" to "max-age=60"),
+                "ok".toByteArray()
+            )
+        }
+        try {
+            repeat(2) {
+                cookieClient.execute(BrowserHttpRequest("https://site.example/page"))
+            }
+            assertEquals(2, cookieConnections)
+        } finally {
+            cookieClient.close()
+        }
+
+        val authClient = BrowserHttpClient()
+        var authConnections = 0
+        authClient.connectionFactory = { url ->
+            authConnections++
+            FakeConnection(
+                url, 200,
+                mapOf("Cache-Control" to "max-age=60"),
+                "ok".toByteArray()
+            )
+        }
+        try {
+            repeat(2) {
+                authClient.execute(
+                    BrowserHttpRequest(
+                        "https://site.example/private",
+                        headers = mapOf("Authorization" to "Bearer user-token")
+                    )
+                )
+            }
+            assertEquals(2, authConnections)
+        } finally {
+            authClient.close()
+        }
+    }
+
+    @Test
     fun cookieJarStoresAndSendsCookiesOnlyToMatchingOrigin() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         val client = BrowserHttpClient(cookieManager = cookies)

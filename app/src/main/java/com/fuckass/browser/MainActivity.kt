@@ -3,6 +3,7 @@ package com.fuckass.browser
 import android.os.Bundle
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.URI
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -54,9 +55,11 @@ import com.fuckass.browser.engine.render.LayoutEngine
 import com.fuckass.browser.engine.render.LayoutResult
 import com.fuckass.browser.engine.render.LayoutViewport
 import com.fuckass.browser.privacy.BrowserPrivacyPolicy
+import com.fuckass.browser.privacy.PrivateSiteRules
 import com.fuckass.browser.search.BuiltInSearchProviders
 import com.fuckass.browser.storage.EphemeralPrivateProfile
 import com.fuckass.browser.storage.FileBrowserDataStore
+import com.fuckass.browser.storage.FilePrivateSiteRulesStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -86,6 +89,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     val renderer = remember { CanvasRenderer() }
     val privateProfile = remember { EphemeralPrivateProfile() }
     val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
+    val privateSiteStore = remember(activity) { FilePrivateSiteRulesStore(activity.filesDir) }
     val generationCounter = remember { AtomicInteger(0) }
     val navigationHistory = remember { BrowserNavigationHistory() }
     val sessionLock = remember { Any() }
@@ -99,6 +103,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var historyMenu by remember { mutableStateOf(false) }
     var historyItems by remember { mutableStateOf(persistentStore.history().map { it.first }) }
     var privateMode by remember { mutableStateOf(false) }
+    var privateSiteHosts by remember { mutableStateOf(privateSiteStore.hosts()) }
+    val privateSiteRules = remember(privateSiteHosts) { PrivateSiteRules(privateSiteHosts) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf<LoadedPage?>(null) }
@@ -138,8 +144,24 @@ private fun BrowserShell(activity: ComponentActivity) {
                     ?: BuiltInSearchProviders.find("ddg")!!.searchUri(raw).toString()
             else -> "https://$raw"
         }
+        val autoPrivate = privateSiteRules.matches(target)
+        if (autoPrivate && !privateMode) {
+            synchronized(sessionLock) { generationCounter.incrementAndGet() }
+            navigationJob?.cancel()
+            normalClient.cancelActiveRequests()
+            normalClient.clearCache()
+            privateClient.cancelActiveRequests()
+            privateClient.clearCache()
+            privateClient.clearCookies()
+            privateProfile.clear()
+            privateMode = true
+            historyItems = emptyList()
+            navigationHistory.reset()
+            historySnapshot = navigationHistory.snapshot()
+            page = null
+        }
         val requestGeneration = generationCounter.incrementAndGet()
-        val privateModeAtStart = privateMode
+        val privateModeAtStart = privateMode || autoPrivate
         val requestClient = if (privateModeAtStart) privateClient else normalClient
         navigationJob?.cancel()
         normalClient.cancelActiveRequests()
@@ -353,11 +375,35 @@ private fun BrowserShell(activity: ComponentActivity) {
             page?.let { loaded ->
                 Card(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp)) {
                     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                        val loadedHost = runCatching { URI(loaded.url).host }.getOrNull()
+                        val alwaysPrivate = privateSiteRules.matches(loaded.url)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(loaded.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            OutlinedButton(
+                                onClick = {
+                                    if (loadedHost != null) {
+                                        if (alwaysPrivate) {
+                                            privateSiteHosts = privateSiteStore.remove(loadedHost)
+                                        } else {
+                                            privateSiteHosts = privateSiteStore.add(loadedHost)
+                                            if (!privateMode) {
+                                                privateMode = true
+                                                privateProfile.clear()
+                                                historyItems = emptyList()
+                                                navigationHistory.reset()
+                                                historySnapshot = navigationHistory.snapshot()
+                                                page = null
+                                                address = ""
+                                                navigate(loaded.url)
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = loadedHost != null
+                            ) { Text(if (alwaysPrivate) "Always private ✓" else "Always private") }
                             OutlinedButton(
                                 onClick = {
                                     runCatching {

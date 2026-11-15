@@ -40,3 +40,7 @@
 
 ## Resume instructions
 Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only. Never mark a feature Done without passing tests.
+
+- New user requirement recorded: dedicated YouTube ad-filter set (network and cosmetic rules, bounded scriptlet subset, scheduled updates, health warning/refresh, and a dated real-device test checklist). Mapped to M3; dependent on :engine-js and the DOM/rendering pipeline. No live YouTube filtering has been verified.
+- YouTube verification record (2026-11-16): NOT RUN — no real-device test performed in this session. Video-start ad, mid-roll, banner/sponsored-card and Shorts checks remain pending.
+- Scope boundary: no anti-adblock evasion, protected stream extraction, DRM/access-control bypass, or claim that server-side inserted ads can be blocked. Direct-stream player alternative requires explicit user approval.

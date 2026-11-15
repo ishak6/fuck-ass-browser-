@@ -6,7 +6,7 @@ The project is executed in dependency order. Each milestone must build, test, pa
 |---|---|---|
 | M1 | Multi-module skeleton, Compose shell, CI and debug APK | All modules compile; no prohibited engine dependency; unit tests, lint and assembleDebug pass in CI; APK artifact exists |
 | M2 | :engine-net HTTP/TLS, HTTPS-only, redirect limits, cache, DoH research | Local deterministic integration tests prove TLS rejection, redirects, cache, HTTPS-only; DoH only marked Done after leak/endpoint tests |
-| M3 | :adblock parser, compiler, matcher, benchmark | Pinned EasyList/AdGuard/uBO subset fixtures pass; unsupported syntax documented; request policy API integration |
+| M3 | :adblock parser, compiler, matcher, benchmark, YouTube filter contracts | Pinned EasyList/AdGuard/uBO subset fixtures; YouTube request/cosmetic/scriptlet fixtures; scheduled update integrity/rollback tests; warning/refresh state tests; unsupported syntax documented; request policy API integration. Real YouTube success is not claimed without a dated device checklist. |
 | M4 | :privacy URL cleaning, cookies, referrer, origin isolation, permissions, private-site policy contracts | Unit/integration tests prove URL/header/cookie policy and origin isolation |
 | M5 | :search providers, modes, meta-search and ranking | Saved provider fixtures; timeout/rate-limit/offline tests; merge opt-in; no scraping against terms |
 | M6 | :engine-html tokenizer, tree builder and DOM | HTML fixture/conformance subset, malformed/adversarial input and resource-limit tests |

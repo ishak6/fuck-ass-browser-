@@ -136,3 +136,13 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Honest private-mode IP disclosure | :privacy/:app | Not started | UI copy test asserts IP visibility disclosure |
 | DoH/VPN/Tor options and limitations | :privacy/:engine-net/:app | Not started | DNS/routing leak tests and limitation-copy assertions |
 | Age-verification/access-control bypass | Not supported | Not started | Explicitly excluded; no bypass implementation or tests |
+
+| YouTube network filter rules | :adblock/:engine-net | Not started | Pinned YouTube request fixtures; verify no breakage of playback |
+| YouTube cosmetic filters (overlays, banners, sponsored cards, Shorts placements) | :adblock/:engine-render | Not started | DOM fixture selector tests plus real-page manual checks |
+| YouTube scriptlet rule parser | :adblock | Not started | Parser fixtures for supported scriptlet syntax |
+| YouTube player-response JSON pruning | :adblock/:engine-js | Not started | Synthetic fixture tests only; live YouTube response behavior not verified |
+| YouTube ad-segment auto-skip/mute/speed-up | :adblock/:engine-js/:media | Not started | Not committed; evaluate feasibility and platform constraints before implementation |
+| YouTube anti-adblock compatibility | :adblock/:engine-js | Not started | Benign compatibility tests; no anti-adblock evasion or access-control bypass |
+| YouTube filter-list daily updates | :adblock | Not started | Scheduled update, signature/hash validation, rollback and stale-list tests |
+| YouTube filter health warning and one-tap refresh | :adblock/:app | Not started | Stale/broken-list state and refresh UI tests |
+| YouTube ad blocking on real pages | :adblock/:engine-js/:engine-render | Partial | Not verified on device; dated manual video-start, mid-roll, banner and Shorts checklist required |

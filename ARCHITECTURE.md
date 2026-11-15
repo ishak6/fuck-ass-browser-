@@ -72,3 +72,14 @@
 - Instrumented tests for Compose, permissions, Keystore, MediaCodec and lifecycle.
 - Benchmarks for parsing, matching, layout and memory.
 - Real-site checks are compatibility observations, not proof of standards compliance.
+
+
+## YouTube filtering scope and limitations
+- YouTube page-level filtering depends on the first-party :engine-js implementation being able to execute the site's player JavaScript and on :engine-html/:engine-render supporting the required DOM and cosmetic selectors. Until those prerequisites exist, YouTube cosmetic/player filtering is Not started.
+- The initial supported approach is ordinary network request filtering and cosmetic hiding using maintained, validated rules. Server-side ad insertion, changing endpoints, player updates and anti-adblock behavior can make rules ineffective or break playback.
+- Scriptlet syntax is parsed only as an explicitly supported subset. Any JSON-pruning behavior is fixture-tested against synthetic data first; it is not represented as working against live YouTube player responses.
+- The browser will not implement anti-adblock detection evasion, access-control bypass, or extraction of protected/direct media stream URLs. If filtering is detected or breaks playback, show an honest compatibility warning and allow the user to refresh or disable the YouTube filter set.
+- Automatic filter updates must use HTTPS, validate downloaded content before activation, retain the last known-good set, and roll back on parse/validation failure. The UI must expose the last successful update and stale/broken status.
+- Optional ad-segment auto-skip/mute/speed-up is not part of the committed baseline; it remains unimplemented pending a separate feasibility and policy review.
+- No claim of YouTube ad blocking is permitted until real-device manual checks are dated and recorded for video-start ads, mid-roll ads, banners/sponsored cards and Shorts. Server-side inserted ads may remain unfilterable.
+- A direct-stream player that avoids running YouTube page JavaScript is a separate architecture with materially different compatibility and platform constraints. It must not be built without explicit user approval; no scraping or access-control/DRM bypass is allowed.

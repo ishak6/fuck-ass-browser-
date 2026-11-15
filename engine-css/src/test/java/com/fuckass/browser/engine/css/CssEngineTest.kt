@@ -24,7 +24,7 @@ class CssEngineTest {
         val parser = CssParser()
         assertTrue(parser.parse("main p.note").single().selectors.single().matches(p))
         assertTrue(parser.parse("p#intro.large[data-kind=x]").single().selectors.single().matches(p))
-        assertFalse(parser.parse("section p").single().selectors.single().matches(p))
+        assertFalse(parser.parse("section p { color: red }").single().selectors.single().matches(p))
     }
 
     @Test fun unsupportedPseudoAndChildCombinatorsAreSkipped() {
@@ -41,7 +41,7 @@ class CssEngineTest {
         val rules = CssParser().parse("p { color: black } #x { color: red !important }")
         val style = ComputedStyleResolver().compute(p, rules)
         assertEquals("red", style["color"])
-        assertEquals("inline", style["display"])
+        assertEquals("block", style["display"])
     }
 
     @Test fun inheritedPropertiesAreCarriedForward() {

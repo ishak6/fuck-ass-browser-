@@ -35,7 +35,7 @@ class JsInterpreterTest {
 
     @Test fun executionBudgetStopsInfiniteLoop() {
         try {
-            JsInterpreter(JsLimits(maxSteps = 20)).execute("while (true) { let x = 1; }")
+            JsInterpreter(JsLimits(maxSteps = 20)).execute("let x = 0; while (true) { x = x + 1; }")
             throw AssertionError("Expected execution budget rejection")
         } catch (_: IllegalStateException) { }
     }

@@ -11,6 +11,9 @@ interface RequestPrivacyPolicy {
 
     /** Return headers safe to send for this destination. */
     fun requestHeaders(url: String, original: Map<String, String>): Map<String, String>
+
+    /** Whether the transport may attach cookies from its profile-scoped cookie jar. */
+    fun allowCookies(url: String): Boolean = true
 }
 
 object NoOpRequestPrivacyPolicy : RequestPrivacyPolicy {

@@ -174,3 +174,13 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 - M11: navigation generations stop stale requests from updating a new session; normal history and private history are routed to separate stores.
 - M12: final clean release build, integration/security/performance audit, signed artifact and device compatibility checks remain outstanding.
 - CI: historical run #24 passed, but all commits after `5bcc64d6f0` require their own successful Actions result before the latest source snapshot is verified.
+## Latest pipelined milestone work — 2026-11-16
+- M2: per-profile CookieManager-backed cookie stores, URI-scoped cookie attachment, Set-Cookie processing on redirect and final responses, cookie-strip policy integration, and cache bypass for cookie/authenticated requests. Real TLS/device integration remains pending.
+- M3: bounded ABP subset remains injectable into the HTTP transport; full EasyList/AdGuard compatibility and a subresource scheduler remain pending.
+- M4: persistent private-site host rules with IDN normalization, add/remove tests and automatic private routing; normal and private cookie jars are separate and private cookies are cleared on mode exit/panic.
+- M8: computed styles are cached per DOM element; CSS rule and style-evaluation budgets are enforced; inline element width propagation corrected.
+- M10: normal bookmarks/history use bounded file-backed storage; private history remains memory-only; private-profile collections have explicit size/count budgets.
+- M11: native back/forward/refresh, bookmark save/open, normal/private history menus and always-private site control integrated. Full tab manager, app lock, permission UX and instrumented UI tests remain pending.
+- Successful CI: run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763268460 passed build, unit tests, lint and APK upload on commit `a00ee7552a`; run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763237046 passed all four gates on commit `057f5a2393`.
+- Newer commits for history ordering and private-routing unit tests are still running in Actions; do not treat the above successful runs as validation of those later commits.
+- M12 final clean release, full integration/security/performance audit, signing readiness and device compatibility matrix remain outstanding.

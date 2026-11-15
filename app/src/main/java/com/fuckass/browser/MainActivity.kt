@@ -1,6 +1,7 @@
 package com.fuckass.browser
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -32,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.fillMaxHeight
@@ -60,7 +62,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { BrowserShell() } }
+        setContent { MaterialTheme { BrowserShell(this@MainActivity) } }
     }
 }
 
@@ -72,7 +74,7 @@ private data class LoadedPage(
 )
 
 @Composable
-private fun BrowserShell() {
+private fun BrowserShell(activity: ComponentActivity) {
     val client = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy()) }
     val renderer = remember { CanvasRenderer() }
     val privateProfile = remember { EphemeralPrivateProfile() }
@@ -86,8 +88,14 @@ private fun BrowserShell() {
     var error by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf<LoadedPage?>(null) }
 
-    DisposableEffect(client, privateProfile) {
+    SideEffect {
+        if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    DisposableEffect(client, privateProfile, activity) {
         onDispose {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             client.close()
             privateProfile.close()
         }
@@ -185,7 +193,8 @@ private fun BrowserShell() {
                 }
                 OutlinedButton(onClick = {
                     privateMode = !privateMode
-                    if (!privateMode) privateProfile.clear()
+                    privateProfile.clear()
+                    if (privateMode) { page = null; address = "" }
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
                 if (privateMode) {
                     OutlinedButton(onClick = { privateProfile.clear(); page = null; address = "" }) {

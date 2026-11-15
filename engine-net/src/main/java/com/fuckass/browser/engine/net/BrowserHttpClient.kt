@@ -161,13 +161,13 @@ class BrowserHttpClient(
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
                 headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
                 if (privacyPolicy.allowCookies(current.toString())) {
-                    val cookieRequestHeaders = headers.mapValues { (_, value) -> listOf(value) }
-                    cookieManager?.get(current.toURI(), cookieRequestHeaders)?.forEach { (name, values) ->
-                        if (name.equals("Cookie", true)) {
-                            connection.setRequestProperty(name, values.joinToString("; "))
-                        } else {
-                            values.forEach { value -> connection.addRequestProperty(name, value) }
-                        }
+                    val scopedCookies = cookieManager?.cookieStore?.get(current.toURI())
+                        .orEmpty().filterNot { it.hasExpired() }
+                    if (scopedCookies.isNotEmpty()) {
+                        connection.setRequestProperty(
+                            "Cookie",
+                            scopedCookies.joinToString("; ") { cookie -> "${cookie.name}=${cookie.value}" }
+                        )
                     }
                 }
                 if (currentMethod == "POST") {

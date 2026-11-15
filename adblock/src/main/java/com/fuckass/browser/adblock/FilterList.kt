@@ -1,5 +1,6 @@
 package com.fuckass.browser.adblock
 
+import java.net.IDN
 import java.net.URI
 import java.util.Locale
 
@@ -16,9 +17,9 @@ class FilterList private constructor(private val rules: List<NetworkRule>) : Net
     override fun shouldBlock(url: String, resourceType: String, topLevelUrl: String?): Boolean {
         val target = runCatching { URI(url) }.getOrNull() ?: return false
         if (!target.scheme.equals("https", true) && !target.scheme.equals("http", true)) return false
-        val host = target.host?.lowercase(Locale.ROOT) ?: return false
-        val topHost = topLevelUrl?.let {
-            runCatching { URI(it).host?.lowercase(Locale.ROOT) }.getOrNull()
+        val host = normalizeHost(target.host) ?: return false
+        val topHost = topLevelUrl?.let { value ->
+            runCatching { normalizeHost(URI(value).host) }.getOrNull()
         }
         var blocked = false
         for (rule in rules) {
@@ -85,6 +86,13 @@ class FilterList private constructor(private val rules: List<NetworkRule>) : Net
                 }
             }
             return NetworkRule(exception, host, path, types, thirdParty, includeDomains, excludeDomains)
+        }
+
+        private fun normalizeHost(value: String?): String? {
+            if (value.isNullOrBlank()) return null
+            return runCatching {
+                IDN.toASCII(value.trimEnd('.'), IDN.USE_STD3_ASCII_RULES).lowercase(Locale.ROOT)
+            }.getOrNull()?.takeIf { it.isNotBlank() && it.length <= 253 }
         }
 
         private fun validHost(host: String): Boolean {

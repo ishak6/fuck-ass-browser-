@@ -64,6 +64,14 @@ class JsInterpreterTest {
         } catch (_: IllegalArgumentException) { }
     }
 
+    @Test fun expressionComplexityIsBoundedBeforeEvaluation() {
+        val source = (1..520).joinToString(" + ")
+        try {
+            JsInterpreter().execute(source)
+            throw AssertionError("Expected expression complexity rejection")
+        } catch (_: IllegalArgumentException) { }
+    }
+
     @Test fun reportsExecutedSteps() {
         val result = JsInterpreter().execute("let x = 1; x + 1")
         assertTrue(result.steps >= 2)

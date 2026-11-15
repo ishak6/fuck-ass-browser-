@@ -7,7 +7,6 @@
 - M1 verification: GitHub Actions run #3 succeeded; all 11 job steps passed (wrapper generation, debug APK, unit tests, lint, artifact upload).
 - Debug APK artifact: `custom-browser-debug-apk`, artifact ID `14177260929`, approximately 9.0 MB.
 - Current milestone: M2 — network engine hardening and integration coverage.
-- Latest M2 hardening commit `00905c062f304b828a43aa82b3e23623a9669a19`; GitHub Actions run #13 passed all 11 steps (debug APK, unit tests, lint, artifact upload).
 - Private-site mode requirements are documented and mapped across M4, M10 and M11; not implemented.
 - YouTube filter requirements are documented for M3; not implemented. Real-device YouTube verification is pending.
 
@@ -30,13 +29,13 @@
 - Request-body size limit and restricted framing/header validation.
 - Privacy policy and network filter policy are evaluated on each redirect destination.
 - Cache excludes responses with Set-Cookie or Vary headers and honors conservative Cache-Control directives.
-- Unit tests cover URL/scheme validation, request policy hooks, request bounds, restricted headers, closed lifecycle, configured limits, cross-origin credential stripping, redirect destination policy and redirect count.
-- Real HTTPS/TLS certificate integration, real redirect-chain integration, cache expiry integration and Android device tests remain pending; fake-connection redirect tests pass, but M2 is not complete.
+- Unit tests cover URL/scheme validation, request policy hooks, request bounds, restricted headers, closed lifecycle and configured limits.
+- Real HTTPS/TLS, redirect, cache expiry and Android device integration tests remain pending; M2 is not complete.
 
 ## Verification
 - M2 compile/test CI run #7 passed: https://github.com/ishak6/fuck-ass-browser-/actions/runs/43754706014
 - YouTube requirements documentation CI run #8 passed: https://github.com/ishak6/fuck-ass-browser-/actions/runs/43754936931
-- Latest hardening change CI run #13 passed: https://github.com/ishak6/fuck-ass-browser-/actions/runs/43756511454 (all 11 steps passed).
+- Latest hardening change awaits CI verification.
 
 ## Known limitations/risks
 - No local Android SDK/emulator is available in this tool session; rely on GitHub Actions and report this limitation.

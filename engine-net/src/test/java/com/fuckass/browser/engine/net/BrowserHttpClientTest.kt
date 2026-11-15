@@ -2,6 +2,8 @@ package com.fuckass.browser.engine.net
 
 import com.fuckass.browser.adblock.NetworkFilterPolicy
 import com.fuckass.browser.privacy.RequestPrivacyPolicy
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CountDownLatch
@@ -212,6 +214,32 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun cookieJarStoresAndSendsCookiesOnlyToMatchingOrigin() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        val client = BrowserHttpClient(cookieManager = cookies)
+        val setCookie = FakeConnection(
+            URL("https://site.example/start"),
+            200,
+            mapOf("Set-Cookie" to "session=private; Path=/; Secure"),
+            "ok".toByteArray()
+        )
+        val nextRequest = FakeConnection(URL("https://site.example/next"), 200, body = "ok".toByteArray())
+        client.connectionFactory = { url -> if (url.path == "/start") setCookie else nextRequest }
+        try {
+            client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
+            client.execute(BrowserHttpRequest("https://site.example/next", useCache = false))
+            assertTrue(nextRequest.requestedHeaders["Cookie"].orEmpty().contains("session=private"))
+            client.clearCookies()
+            val thirdRequest = FakeConnection(URL("https://site.example/after-clear"), 200)
+            client.connectionFactory = { thirdRequest }
+            client.execute(BrowserHttpRequest("https://site.example/after-clear", useCache = false))
+            assertFalse(thirdRequest.requestedHeaders.containsKey("Cookie"))
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun cancelActiveRequestsDisconnectsInFlightConnection() {
         val client = BrowserHttpClient()
         val enteredResponse = CountDownLatch(1)
@@ -326,7 +354,7 @@ class BrowserHttpClientTest {
         override fun getErrorStream(): java.io.InputStream? =
             if (status >= 400) java.io.ByteArrayInputStream(body) else null
         override fun getContentEncoding(): String? = null
-        override fun setRequestProperty(key: String?, value: String?) {
+        override fun addRequestProperty(key: String?, value: String?) {\n            if (key != null && value != null) requestedHeaders[key] = requestedHeaders[key]?.let { \"$it, $value\" } ?: value\n        }\n        override fun setRequestProperty(key: String?, value: String?) {
             if (key != null && value != null) requestedHeaders[key] = value
         }
     }

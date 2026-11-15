@@ -93,6 +93,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var address by remember { mutableStateOf("") }
     var selectedProvider by remember { mutableStateOf("ddg") }
     var providerMenu by remember { mutableStateOf(false) }
+    var bookmarkMenu by remember { mutableStateOf(false) }
+    var bookmarkItems by remember { mutableStateOf(persistentStore.bookmarks()) }
     var privateMode by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -244,6 +246,24 @@ private fun BrowserShell(activity: ComponentActivity) {
                     page = null
                     address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
+                Box {
+                    OutlinedButton(onClick = { bookmarkMenu = true }) { Text("Bookmarks") }
+                    DropdownMenu(expanded = bookmarkMenu, onDismissRequest = { bookmarkMenu = false }) {
+                        if (bookmarkItems.isEmpty()) {
+                            DropdownMenuItem(text = { Text("No saved bookmarks") }, onClick = { bookmarkMenu = false })
+                        } else {
+                            bookmarkItems.forEach { (url, title) ->
+                                DropdownMenuItem(
+                                    text = { Text(title.ifBlank { url }, maxLines = 1) },
+                                    onClick = {
+                                        bookmarkMenu = false
+                                        navigate(url)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
                 if (privateMode) {
                     OutlinedButton(onClick = {
                         synchronized(sessionLock) { generationCounter.incrementAndGet() }
@@ -307,7 +327,20 @@ private fun BrowserShell(activity: ComponentActivity) {
             page?.let { loaded ->
                 Card(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp)) {
                     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                        Text(loaded.title, style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(loaded.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            OutlinedButton(onClick = {
+                                runCatching {
+                                    persistentStore.saveBookmark(loaded.url, loaded.title)
+                                    bookmarkItems = persistentStore.bookmarks()
+                                }.onFailure { failure ->
+                                    error = failure.message ?: "Could not save bookmark"
+                                }
+                            }) { Text("Bookmark") }
+                        }
                         Text("${loaded.statusCode} • ${loaded.url}", style = MaterialTheme.typography.bodySmall)
                         Spacer(modifier = Modifier.height(8.dp))
                         val pageHeight = with(density) { loaded.layout.contentHeight.coerceAtLeast(500f).toDp() }

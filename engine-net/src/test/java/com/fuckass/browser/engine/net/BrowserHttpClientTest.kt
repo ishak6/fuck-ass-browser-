@@ -286,7 +286,12 @@ class BrowserHttpClientTest {
     @Test
     fun cookieJarStoresAndSendsCookiesOnlyToMatchingOrigin() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        cookies.cookieStore.add(URI("https://www.example.com/"), HttpCookie("session", "private"))
+        val sessionCookie = HttpCookie("session", "private").apply {
+            domain = ".example.com"
+            path = "/"
+            secure = true
+        }
+        cookies.cookieStore.add(URI("https://www.example.com/"), sessionCookie)
         val client = BrowserHttpClient(cookieManager = cookies)
         val nextRequest = FakeConnection(URL("https://www.example.com/next"), 200, body = "ok".toByteArray())
         client.connectionFactory = { nextRequest }

@@ -29,8 +29,8 @@ jobs:
           gradle-version: "8.9"
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.9 --distribution-type bin
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
+      - name: Build debug and release APKs
+        run: ./gradlew assembleDebug assembleRelease
       - name: Run unit tests
         run: ./gradlew test
       - name: Run Android lint

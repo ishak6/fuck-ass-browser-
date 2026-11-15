@@ -174,6 +174,28 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun privacyHeadersAreRecomputedForEachRedirectDestination() {
+        val policy = object : RequestPrivacyPolicy {
+            override fun sanitizeUrl(url: String): String? = url
+            override fun requestHeaders(url: String, original: Map<String, String>): Map<String, String> =
+                original + ("X-Policy-Host" to URL(url).host)
+        }
+        val client = BrowserHttpClient(privacyPolicy = policy)
+        val first = FakeConnection(URL("https://first.example/start"), 302,
+            mapOf("Location" to "https://second.example/final"))
+        val second = FakeConnection(URL("https://second.example/final"), 200, body = "ok".toByteArray())
+        client.connectionFactory = { url -> if (url.host == "first.example") first else second }
+        try {
+            val result = client.execute(BrowserHttpRequest("https://first.example/start", useCache = false))
+            assertEquals(200, result.statusCode)
+            assertEquals("first.example", first.requestedHeaders["X-Policy-Host"])
+            assertEquals("second.example", second.requestedHeaders["X-Policy-Host"])
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun redirectDestinationIsCheckedByContentPolicyBeforeConnecting() {
         val policy = NetworkFilterPolicy { url, _, _ -> url.endsWith("/blocked") }
         val client = BrowserHttpClient(filterPolicy = policy)

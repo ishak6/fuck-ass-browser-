@@ -218,6 +218,30 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun publicGetResponsesUseBoundedFreshCacheWhenNoCredentialsOrCookieJarExist() {
+        val client = BrowserHttpClient()
+        var connections = 0
+        client.connectionFactory = { url ->
+            connections++
+            FakeConnection(
+                url,
+                200,
+                mapOf("Cache-Control" to "max-age=60"),
+                "public".toByteArray()
+            )
+        }
+        try {
+            val first = client.execute(BrowserHttpRequest("https://public.example/page"))
+            val second = client.execute(BrowserHttpRequest("https://public.example/page"))
+            assertFalse(first.fromCache)
+            assertTrue(second.fromCache)
+            assertEquals(1, connections)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun explicitCookieStrippingPreventsProfileCookieAttachment() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         cookies.cookieStore.add(URI("https://site.example/"), HttpCookie("session", "secret"))

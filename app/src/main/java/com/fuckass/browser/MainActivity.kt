@@ -95,6 +95,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var providerMenu by remember { mutableStateOf(false) }
     var bookmarkMenu by remember { mutableStateOf(false) }
     var bookmarkItems by remember { mutableStateOf(persistentStore.bookmarks()) }
+    var historyMenu by remember { mutableStateOf(false) }
+    var historyItems by remember { mutableStateOf(persistentStore.history().map { it.first }) }
     var privateMode by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -181,6 +183,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                     if (onHistorySuccess != null) onHistorySuccess()
                     else if (recordHistory) navigationHistory.record(target)
                     historySnapshot = navigationHistory.snapshot()
+                    historyItems = if (privateModeAtStart) privateProfile.historyEntries()
+                        else persistentStore.history().map { it.first }
                     page = loaded
                 }
             } catch (failure: Exception) {
@@ -239,13 +243,33 @@ private fun BrowserShell(activity: ComponentActivity) {
                     privateClient.clearCookies()
                     loading = false
                     error = null
-                    privateMode = !privateMode
+                    val enteringPrivate = !privateMode
+                    privateMode = enteringPrivate
+                    historyItems = if (enteringPrivate) emptyList() else persistentStore.history().map { it.first }
                     privateProfile.clear()
                     navigationHistory.reset()
                     historySnapshot = navigationHistory.snapshot()
                     page = null
                     address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
+                Box {
+                    OutlinedButton(onClick = { historyMenu = true }) { Text("History") }
+                    DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
+                        if (historyItems.isEmpty()) {
+                            DropdownMenuItem(text = { Text("No browsing history") }, onClick = { historyMenu = false })
+                        } else {
+                            historyItems.asReversed().forEach { url ->
+                                DropdownMenuItem(
+                                    text = { Text(url, maxLines = 1) },
+                                    onClick = {
+                                        historyMenu = false
+                                        navigate(url)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
                 Box {
                     OutlinedButton(onClick = { bookmarkMenu = true }) { Text("Bookmarks") }
                     DropdownMenu(expanded = bookmarkMenu, onDismissRequest = { bookmarkMenu = false }) {
@@ -274,6 +298,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                         privateClient.clearCache()
                         privateClient.clearCookies()
                         privateProfile.clear()
+                        historyItems = emptyList()
                         navigationHistory.reset()
                         historySnapshot = navigationHistory.snapshot()
                         loading = false

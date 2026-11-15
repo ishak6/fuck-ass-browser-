@@ -67,6 +67,14 @@ class BrowserPrivacyPolicyTest {
         assertTrue(headers.containsKey("Accept"))
     }
 
+    @Test fun cookieJarPermissionFollowsCookieStrippingSetting() {
+        assertTrue(BrowserPrivacyPolicy().allowCookies("https://example.test/"))
+        assertFalse(
+            BrowserPrivacyPolicy(PrivacySettings(stripCookieHeaders = true))
+                .allowCookies("https://example.test/")
+        )
+    }
+
     @Test fun privateSiteRulesMatchExactHostAndSubdomainsOnly() {
         val rules = PrivateSiteRules(setOf("private.example", "bad/path", "singlelabel"))
         assertTrue(rules.matches("https://private.example/page"))

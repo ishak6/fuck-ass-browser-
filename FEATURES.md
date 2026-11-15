@@ -8,7 +8,7 @@
 - Debug APK artifact: `custom-browser-debug-apk`, artifact ID `14177260929`, approximately 9.0 MB.
 - Current execution mode: pipelined M0-M12 implementation; see `MILESTONE_PIPELINE.md` and `PROGRESS.md`.
 - Latest M2 hardening commit `00905c062f304b828a43aa82b3e23623a9669a19`; GitHub Actions run #13 passed all 11 steps (debug APK, unit tests, lint, artifact upload).
-- Private-site support is partially implemented: in-memory host matcher, ephemeral private profile, Compose private toggle, panic clear and FLAG_SECURE. Persistence, automatic routing and app lock remain pending.
+- Private-site support is partially implemented: persistent IDN-normalized host rules, automatic private routing, ephemeral private profile, Compose toggle, panic clear and FLAG_SECURE. App lock and instrumented privacy verification remain pending.
 - M3 includes a bounded network-rule parser only. YouTube cosmetic/scriptlet filtering and real-device verification remain unimplemented.
 
 ## Finished
@@ -41,7 +41,7 @@
 ## Known limitations/risks
 - No local Android SDK/emulator is available in this tool session; rely on GitHub Actions and report this limitation.
 - This is an HTTP transport, not yet a full browser loading/resource scheduler.
-- Cookies, HTTP/2 prioritization, service workers, DNS-over-HTTPS and certificate UI are not implemented.
+- Profile-scoped in-memory cookie jars, redirect/final Set-Cookie handling and cookie stripping are implemented; durable normal-cookie persistence, HTTP/2 prioritization, service workers, DNS-over-HTTPS and certificate UI remain pending.
 - Full modern JavaScript, Widevine DRM, WebGL and broad modern-site compatibility cannot be promised.
 - An initial first-party HTML/CSS/layout/Canvas rendering path is integrated; it remains a limited subset, not a production browser engine.
 - YouTube manual verification (video-start ad, mid-roll, banner/sponsored card, Shorts): NOT RUN on 2026-11-16; no real-device test was performed.
@@ -58,7 +58,7 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 - M6-M8: bounded HTML tokenizer/tree builder/DOM, CSS subset parser/cascade, initial layout and Android Canvas backend implemented. Full standards conformance and device rendering are not claimed.
 - M9: bounded primitive JS interpreter implemented; it is not full ECMAScript and is not connected to page scripts/DOM.
 - M10: bounded ephemeral private storage, playback state controller, reader-mode extraction and a file-backed durable normal bookmark/history store are implemented with unit tests; Keystore and actual MediaCodec/PiP pipeline remain pending.
-- M11: Compose navigation shell integrates network, HTML/CSS subset and Canvas display list; navigation cancellation, private-mode cache reset, panic-clear request cancellation, FLAG_SECURE and IP disclosure are implemented. Full tab/settings/app-lock/permission UX and instrumented tests remain pending.
+- M11: Compose shell includes back/forward/refresh, bookmarks, normal/private history menus, always-private site controls, navigation cancellation, private-mode cache/cookie reset, FLAG_SECURE and IP disclosure. Full tab manager, app lock, permission UX and instrumented tests remain pending.
 - Consolidated CI run #24 passed on commit `5bcc64d6f0`. Newer pipeline changes are being tested in Actions; do not treat that older pass as validation of the newest commit. This is CI source-snapshot verification only, not device validation.
 
 
@@ -76,5 +76,7 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 
 ## Current CI evidence (rolling pipeline)
 - Run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43762730518 passed on commit `1404cc457452`: debug APK build, unit tests, Android lint and APK artifact upload all succeeded.
-- Later commits add cookie redirect coverage, storage-limit adjustments and additional layout/cache tests; their Actions runs are still pending. The 1404 pass is not evidence for those later commits.
+- Run 43763268460 passed build, unit tests, lint and APK upload on `a00ee7552a`; run 43763237046 passed the same gates on `057f5a2393`. Later history-order and private-routing helper tests are still running; those commits are not yet verified.
 - No physical-device or emulator verification has been performed.
+
+- M4/M11: `FilePrivateSiteRulesStore` persists host rules and the app automatically selects the private profile for matching sites; app-level routing unit tests have been added and are pending CI.

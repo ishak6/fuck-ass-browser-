@@ -56,6 +56,41 @@ class LayoutEngineTest {
         } catch (_: IllegalArgumentException) { }
     }
 
+    @Test fun inlineElementsAdvanceByTheirContentWidth() {
+        val document = HtmlTreeBuilder().build(
+            HtmlTokenizer().tokenize("<div><span>A</span><span>B</span></div>")
+        )
+        val texts = LayoutEngine().layout(document, LayoutViewport(200f, 100f))
+            .commands.filterIsInstance<DisplayCommand.DrawText>()
+        assertEquals(2, texts.size)
+        assertTrue(texts[1].x > texts[0].x)
+        assertTrue(texts[1].x < 20f)
+    }
+
+    @Test fun cssStyleEvaluationBudgetIsEnforced() {
+        val document = HtmlTreeBuilder().build(HtmlTokenizer().tokenize("<div><p>text</p></div>"))
+        try {
+            LayoutEngine(LayoutLimits(maxStyleEvaluations = 1)).layout(
+                document,
+                LayoutViewport(100f, 100f),
+                listOf("div { color: red }")
+            )
+            throw AssertionError("Expected style evaluation budget")
+        } catch (_: IllegalArgumentException) { }
+    }
+
+    @Test fun totalCssRuleCountIsBounded() {
+        val document = HtmlTreeBuilder().build(HtmlTokenizer().tokenize("<div></div>"))
+        try {
+            LayoutEngine(LayoutLimits(maxStyleRules = 1)).layout(
+                document,
+                LayoutViewport(100f, 100f),
+                listOf("div { color: red }", "p { color: blue }")
+            )
+            throw AssertionError("Expected CSS rule limit")
+        } catch (_: IllegalArgumentException) { }
+    }
+
     @Test fun cssPixelAndPercentageLengthsAreBounded() {
         val document = HtmlTreeBuilder().build(HtmlTokenizer().tokenize("<div></div>"))
         val result = LayoutEngine().layout(

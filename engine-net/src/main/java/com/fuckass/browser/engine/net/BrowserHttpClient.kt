@@ -9,6 +9,7 @@ import java.io.Closeable
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URI
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
@@ -135,7 +136,12 @@ class BrowserHttpClient(
                     if (redirectIndex >= limits.maxRedirects) {
                         throw BrowserNetworkException("Too many redirects")
                     }
-                    val next = validateUrl(URL(current, location).toString())
+                    val redirected = privacyPolicy.sanitizeUrl(URL(current, location).toString())
+                        ?: throw BrowserNetworkException("Redirect rejected by privacy policy")
+                    val next = validateUrl(redirected)
+                    if (filterPolicy.shouldBlock(next.toString(), request.resourceType, request.topLevelUrl)) {
+                        throw BrowserNetworkException("Redirect blocked by content policy")
+                    }
                     if (current.protocol == "https" && next.protocol == "http") {
                         throw BrowserNetworkException("HTTPS downgrade redirect blocked")
                     }
@@ -182,7 +188,7 @@ class BrowserHttpClient(
         if (url.protocol != "https" && url.protocol != "http") {
             throw BrowserNetworkException("Only HTTP and HTTPS URLs are supported")
         }
-        if (url.host.isBlank() || url.userInfo != null) {
+        if (url.host.isBlank() || runCatching { URI(value).rawUserInfo != null }.getOrDefault(true)) {
             throw BrowserNetworkException("Invalid URL authority")
         }
         if (url.protocol == "http") {

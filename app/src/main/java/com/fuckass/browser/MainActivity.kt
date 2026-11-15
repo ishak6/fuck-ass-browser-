@@ -1,6 +1,8 @@
 package com.fuckass.browser
 
 import android.os.Bundle
+import java.net.CookieManager
+import java.net.CookiePolicy
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -76,7 +78,10 @@ private data class LoadedPage(
 
 @Composable
 private fun BrowserShell(activity: ComponentActivity) {
-    val client = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy()) }
+    val normalCookies = remember { CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
+    val privateCookies = remember { CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
+    val normalClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = normalCookies) }
+    val privateClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = privateCookies) }
     val renderer = remember { CanvasRenderer() }
     val privateProfile = remember { EphemeralPrivateProfile() }
     val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
@@ -98,13 +103,16 @@ private fun BrowserShell(activity: ComponentActivity) {
         else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 
-    DisposableEffect(client, privateProfile, activity) {
+    DisposableEffect(normalClient, privateClient, privateProfile, activity) {
         onDispose {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             generationCounter.incrementAndGet()
             navigationJob?.cancel()
-            client.cancelActiveRequests()
-            client.close()
+            normalClient.cancelActiveRequests()
+            privateClient.cancelActiveRequests()
+            normalClient.close()
+            privateClient.close()
+            privateClient.clearCookies()
             privateProfile.close()
         }
     }
@@ -125,15 +133,17 @@ private fun BrowserShell(activity: ComponentActivity) {
         }
         val requestGeneration = generationCounter.incrementAndGet()
         val privateModeAtStart = privateMode
+        val requestClient = if (privateModeAtStart) privateClient else normalClient
         navigationJob?.cancel()
-        client.cancelActiveRequests()
+        normalClient.cancelActiveRequests()
+        privateClient.cancelActiveRequests()
         address = target
         loading = true
         error = null
         navigationJob = scope.launch {
             try {
                 val loaded = withContext(Dispatchers.IO) {
-                    val response = client.execute(
+                    val response = requestClient.execute(
                         BrowserHttpRequest(
                             url = target,
                             resourceType = "document",
@@ -213,8 +223,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                 OutlinedButton(onClick = {
                     synchronized(sessionLock) { generationCounter.incrementAndGet() }
                     navigationJob?.cancel()
-                    client.cancelActiveRequests()
-                    client.clearCache()
+                    normalClient.cancelActiveRequests()
+                    privateClient.cancelActiveRequests()
+                    normalClient.clearCache()
+                    privateClient.clearCache()
+                    privateClient.clearCookies()
                     loading = false
                     error = null
                     privateMode = !privateMode
@@ -226,8 +239,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                     OutlinedButton(onClick = {
                         synchronized(sessionLock) { generationCounter.incrementAndGet() }
                         navigationJob?.cancel()
-                        client.cancelActiveRequests()
-                        client.clearCache()
+                        normalClient.cancelActiveRequests()
+                        privateClient.cancelActiveRequests()
+                        normalClient.clearCache()
+                        privateClient.clearCache()
+                        privateClient.clearCookies()
                         privateProfile.clear()
                         loading = false
                         error = null

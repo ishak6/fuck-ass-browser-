@@ -150,9 +150,9 @@ class FileBrowserDataStore(private val directory: File) : BrowserDataStore {
         private const val FILE_NAME = "browser-data.bin"
         private const val MAGIC = 0x43425257
         private const val VERSION = 1
-        private const val MAX_TEXT_BYTES = 16 * 1024
-        private const val MAX_BOOKMARKS = 2_000
-        private const val MAX_HISTORY = 10_000
+        private const val MAX_TEXT_BYTES = 2 * 1024
+        private const val MAX_BOOKMARKS = 500
+        private const val MAX_HISTORY = 2_000
         private const val MAX_FILE_BYTES = 8 * 1024 * 1024
         private const val HEADER_BYTES = 12
     }

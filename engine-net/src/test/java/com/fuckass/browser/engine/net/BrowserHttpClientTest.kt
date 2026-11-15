@@ -4,6 +4,8 @@ import com.fuckass.browser.adblock.NetworkFilterPolicy
 import com.fuckass.browser.privacy.RequestPrivacyPolicy
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -210,6 +212,34 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun cancelActiveRequestsDisconnectsInFlightConnection() {
+        val client = BrowserHttpClient()
+        val enteredResponse = CountDownLatch(1)
+        val connection = FakeConnection(
+            URL("https://site.example/slow"),
+            200,
+            responseGate = enteredResponse
+        )
+        client.connectionFactory = { connection }
+        val worker = Thread {
+            runCatching {
+                client.execute(BrowserHttpRequest("https://site.example/slow", useCache = false))
+            }
+        }
+        worker.start()
+        try {
+            assertTrue(enteredResponse.await(2, TimeUnit.SECONDS))
+            client.cancelActiveRequests()
+            worker.join(2_000)
+            assertFalse(worker.isAlive)
+            assertTrue(connection.disconnected)
+        } finally {
+            client.close()
+            worker.interrupt()
+        }
+    }
+
+    @Test
     fun seeOtherRedirectPreservesHeadMethod() {
         val client = BrowserHttpClient()
         val first = FakeConnection(URL("https://first.example/start"), 303,
@@ -273,15 +303,21 @@ class BrowserHttpClientTest {
         url: URL,
         private val status: Int,
         private val responseHeaders: Map<String, String> = emptyMap(),
-        private val body: ByteArray = ByteArray(0)
+        private val body: ByteArray = ByteArray(0),
+        private val responseGate: CountDownLatch? = null
     ) : HttpURLConnection(url) {
         val requestedHeaders = linkedMapOf<String, String>()
-        var disconnected = false
+        @Volatile var disconnected = false
 
         override fun connect() = Unit
         override fun disconnect() { disconnected = true }
         override fun usingProxy(): Boolean = false
-        override fun getResponseCode(): Int = status
+        override fun getResponseCode(): Int {
+            responseGate?.countDown()
+            while (responseGate != null && !disconnected) Thread.sleep(5)
+            if (disconnected) throw java.io.IOException("Connection cancelled")
+            return status
+        }
         override fun getHeaderField(name: String?): String? =
             responseHeaders.entries.firstOrNull { it.key.equals(name, true) }?.value
         override fun getHeaderFields(): MutableMap<String?, MutableList<String>> =

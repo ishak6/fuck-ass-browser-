@@ -12,11 +12,13 @@ data class JsLimits(
     val maxSourceChars: Int = 64 * 1024,
     val maxTokens: Int = 20_000,
     val maxSteps: Int = 100_000,
-    val maxParseDepth: Int = 128
+    val maxParseDepth: Int = 128,
+    val maxExpressionNodes: Int = 512
 ) {
     init {
         require(maxSourceChars > 0 && maxTokens > 0 && maxSteps > 0)
         require(maxParseDepth in 1..1024)
+        require(maxExpressionNodes in 1..8192)
     }
 }
 
@@ -122,13 +124,14 @@ class JsInterpreter(private val limits: JsLimits = JsLimits()) {
         fun evaluate(state: State): JsValue
     }
     private data class Literal(val value: JsValue) : Expression {
-        override fun evaluate(state: State): JsValue = value
+        override fun evaluate(state: State): JsValue { state.tick(); return value }
     }
     private data class Identifier(val name: String) : Expression {
-        override fun evaluate(state: State): JsValue = state.get(name)
+        override fun evaluate(state: State): JsValue { state.tick(); return state.get(name) }
     }
     private data class Unary(val operator: String, val expression: Expression) : Expression {
         override fun evaluate(state: State): JsValue {
+            state.tick()
             val value = expression.evaluate(state)
             return when (operator) {
                 "!" -> JsValue.BooleanValue(!truthy(value))
@@ -140,6 +143,7 @@ class JsInterpreter(private val limits: JsLimits = JsLimits()) {
     }
     private data class Binary(val left: Expression, val operator: String, val right: Expression) : Expression {
         override fun evaluate(state: State): JsValue {
+            state.tick()
             val a = left.evaluate(state)
             if (operator == "&&") return if (truthy(a)) right.evaluate(state) else a
             if (operator == "||") return if (truthy(a)) a else right.evaluate(state)
@@ -243,6 +247,7 @@ class JsInterpreter(private val limits: JsLimits = JsLimits()) {
     private class Parser(private val tokens: List<Token>, private val limits: JsLimits) {
         private var index = 0
         private var depth = 0
+        private var expressionNodes = 0
 
         fun parseProgram(): List<Statement> {
             val result = mutableListOf<Statement>()
@@ -303,6 +308,8 @@ class JsInterpreter(private val limits: JsLimits = JsLimits()) {
                     if (precedence < minPrecedence) break
                     consume()
                     val right = expression(precedence + 1)
+                    expressionNodes++
+                    require(expressionNodes <= limits.maxExpressionNodes) { "Expression complexity limit exceeded" }
                     left = Binary(left, op, right)
                 }
                 return left
@@ -312,7 +319,11 @@ class JsInterpreter(private val limits: JsLimits = JsLimits()) {
         }
 
         private fun prefix(): Expression {
-            if (at("!") || at("-") || at("+")) return Unary(consume().text, expression(7))
+            if (at("!") || at("-") || at("+")) {
+                expressionNodes++
+                require(expressionNodes <= limits.maxExpressionNodes) { "Expression complexity limit exceeded" }
+                return Unary(consume().text, expression(7))
+            }
             if (match("(")) {
                 val value = expression()
                 expect(")")

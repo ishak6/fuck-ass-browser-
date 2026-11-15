@@ -1,6 +1,6 @@
 # Milestone Pipeline Execution
 
-The user-requested execution model is pipelined, not a single end-of-project test pass.
+The user-requested execution model covers M0 through M12 and is pipelined, not a single end-of-project test pass.
 
 ## Pipeline
 
@@ -10,7 +10,7 @@ The user-requested execution model is pipelined, not a single end-of-project tes
 4. Inspect the earlier milestone's actual build/test/lint result and job logs.
 5. If a prior run fails, fix the defect on the current branch, add or correct a regression test, and rerun CI. Do not mark the milestone verified until a successful run for the relevant commit is visible.
 6. Continue through M11, keeping each milestone's implementation and evidence recorded in FEATURES.md and PROGRESS.md.
-7. After M11, run a final clean build/test/lint, security review, regression pass and APK artifact verification. M12 release work remains the final release/compatibility gate in ROADMAP.md.
+7. M12 is the final release gate: clean build/test/lint, integration and regression suite, security/performance/compatibility audit, APK artifact verification, signing readiness and dated device test matrix.
 
 ## Safety and quality gates
 

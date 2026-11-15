@@ -1,5 +1,6 @@
 package com.fuckass.browser.search
 
+import java.net.IDN
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -23,7 +24,10 @@ class UrlTemplateSearchProvider(
 ) : SearchProvider {
     init {
         require(id.matches(Regex("[a-z0-9-]{2,32}")))
-        require(endpoint.startsWith("https://"))
+        val parsedEndpoint = runCatching { URI(endpoint) }.getOrNull()
+        require(parsedEndpoint?.scheme.equals("https", true))
+        require(!parsedEndpoint?.host.isNullOrBlank() && parsedEndpoint?.rawUserInfo == null)
+        require(parsedEndpoint?.rawFragment == null)
         require(queryParameter.matches(Regex("[a-zA-Z0-9_-]{1,32}")))
     }
 
@@ -70,7 +74,7 @@ object SearchBangParser {
         val provider = shortcuts[first.lowercase()]
         return if (provider == null) SearchRequest(trimmed, fallbackProviderId)
         else {
-            val remainder = trimmed.removePrefix(first).trim()
+            val remainder = trimmed.substring(first.length).trim()
             SearchRequest(remainder.ifBlank { first }, provider)
         }
     }

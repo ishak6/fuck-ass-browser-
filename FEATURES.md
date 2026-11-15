@@ -59,4 +59,4 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 - M9: bounded primitive JS interpreter implemented; it is not full ECMAScript and is not connected to page scripts/DOM.
 - M10: ephemeral private storage, playback state controller and reader-mode extraction implemented; persistent storage, Keystore and actual MediaCodec/PiP pipeline remain pending.
 - M11: Compose navigation shell integrates network, HTML/CSS subset and Canvas display list; private toggle uses FLAG_SECURE and memory cleanup. Full tab/settings/app-lock/permission UX and instrumented tests remain pending.
-- Latest consolidated CI is still required to validate all current commits; no milestone is marked complete based solely on source being committed.
+- Consolidated CI run #24 passed on commit `5bcc64d6f0`: debug APK build, unit tests, Android lint and APK artifact upload succeeded. This is source-snapshot verification only; it does not establish full browser compatibility or device validation.

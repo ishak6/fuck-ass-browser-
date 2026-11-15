@@ -44,7 +44,8 @@ object BuiltInSearchProviders {
         UrlTemplateSearchProvider("ecosia", "Ecosia", "https://www.ecosia.org/search", "q"),
         UrlTemplateSearchProvider("qwant", "Qwant", "https://www.qwant.com/", "q"),
         UrlTemplateSearchProvider("mojeek", "Mojeek", "https://www.mojeek.com/search", "q"),
-        UrlTemplateSearchProvider("yandex", "Yandex", "https://yandex.com/search/", "text")
+        UrlTemplateSearchProvider("yandex", "Yandex", "https://yandex.com/search/", "text"),
+        UrlTemplateSearchProvider("wikipedia", "Wikipedia", "https://en.wikipedia.org/w/index.php", "search")
     )
 
     fun find(id: String): SearchProvider? = all.firstOrNull { it.id == id }

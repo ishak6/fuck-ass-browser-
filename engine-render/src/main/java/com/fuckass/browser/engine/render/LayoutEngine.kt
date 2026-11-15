@@ -3,8 +3,10 @@ package com.fuckass.browser.engine.render
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import java.util.IdentityHashMap
 import com.fuckass.browser.engine.css.ComputedStyleResolver
 import com.fuckass.browser.engine.css.CssParser
+import com.fuckass.browser.engine.css.CssParserLimits
 import com.fuckass.browser.engine.css.CssRule
 import com.fuckass.browser.engine.html.HtmlComment
 import com.fuckass.browser.engine.html.HtmlDocument
@@ -32,9 +34,14 @@ data class LayoutResult(
 data class LayoutLimits(
     val maxNodes: Int = 100_000,
     val maxDepth: Int = 256,
-    val maxCommands: Int = 200_000
+    val maxCommands: Int = 200_000,
+    val maxStyleRules: Int = 10_000,
+    val maxStyleEvaluations: Int = 1_000_000
 ) {
-    init { require(maxNodes > 0 && maxDepth > 0 && maxCommands > 0) }
+    init {
+        require(maxNodes > 0 && maxDepth > 0 && maxCommands > 0)
+        require(maxStyleRules > 0 && maxStyleEvaluations > 0)
+    }
 }
 
 /**
@@ -47,8 +54,19 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
         viewport: LayoutViewport,
         stylesheets: List<String> = emptyList()
     ): LayoutResult {
-        val rules = stylesheets.flatMap { CssParser().parse(it) }
+        val rules = stylesheets.flatMap { CssParser(CssParserLimits(maxRules = limits.maxStyleRules)).parse(it) }
+        require(rules.size <= limits.maxStyleRules) { "Layout CSS rule limit exceeded" }
         val resolver = ComputedStyleResolver()
+        val styleCache = IdentityHashMap<HtmlElement, Map<String, String>>()
+        var styleEvaluations = 0
+        fun computedStyle(element: HtmlElement, inherited: Map<String, String>): Map<String, String> {
+            styleCache[element]?.let { return it }
+            styleEvaluations += maxOf(1, rules.size)
+            if (styleEvaluations > limits.maxStyleEvaluations) {
+                throw IllegalArgumentException("Style evaluation budget exceeded")
+            }
+            return resolver.compute(element, rules, inherited).also { styleCache[element] = it }
+        }
         val commands = mutableListOf<DisplayCommand>()
         var visited = 0
         var cursorY = 0f
@@ -75,7 +93,7 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                     }
                 }
                 is HtmlElement -> {
-                    val style = resolver.compute(node, rules, inherited)
+                    val style = computedStyle(node, inherited)
                     if (style["display"] == "none") return 0f
                     val display = style["display"] ?: if (node.tagName in BLOCK_TAGS) "block" else "inline"
                     val width = cssLength(style["width"], availableWidth) ?: availableWidth
@@ -86,7 +104,7 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                     var maxInlineWidth = 0f
                     node.children.forEach { child ->
                         val childIsBlock = child is HtmlElement && (
-                            resolver.compute(child, rules, style)["display"] ?: if (child.tagName in BLOCK_TAGS) "block" else "inline"
+                            computedStyle(child, style)["display"] ?: if (child.tagName in BLOCK_TAGS) "block" else "inline"
                         ) == "block"
                         if (childIsBlock || display == "block" && child is HtmlElement && child.tagName in BLOCK_TAGS) {
                             childY += renderNode(child, x, childY, width, style, depth + 1)

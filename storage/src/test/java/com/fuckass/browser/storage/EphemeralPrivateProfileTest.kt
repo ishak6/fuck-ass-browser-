@@ -40,6 +40,41 @@ class EphemeralPrivateProfileTest {
         assertTrue(snapshot.closed)
     }
 
+    @Test fun privateStoresEnforceEntryAndMemoryBudgets() {
+        val profile = EphemeralPrivateProfile(
+            PrivateProfileLimits(
+                maxCookies = 1,
+                maxCacheEntries = 1,
+                maxCacheBytes = 4,
+                maxHistoryEntries = 2,
+                maxFormEntries = 1,
+                maxDownloadEntries = 1,
+                maxEntryChars = 16
+            )
+        )
+        profile.putCookie("sid=1")
+        profile.putCookie("sid=2")
+        profile.putCache("one", byteArrayOf(1, 2, 3))
+        profile.putCache("two", byteArrayOf(4, 5, 6))
+        profile.addHistory("https://a.test")
+        profile.addHistory("https://b.test")
+        profile.addHistory("https://c.test")
+        profile.putFormData("a", "one")
+        profile.putFormData("b", "two")
+        profile.addDownload("one.bin")
+        profile.addDownload("two.bin")
+        val snapshot = profile.snapshot()
+        assertEquals(1, snapshot.cookieCount)
+        assertEquals(1, snapshot.cacheEntryCount)
+        assertEquals(2, snapshot.historyEntryCount)
+        assertEquals(1, snapshot.formEntryCount)
+        assertEquals(1, snapshot.downloadEntryCount)
+        try {
+            profile.putCache("oversized", ByteArray(5))
+            throw AssertionError("Expected cache size rejection")
+        } catch (_: IllegalArgumentException) { }
+    }
+
     @Test fun closedProfileRejectsFurtherWrites() {
         val profile = EphemeralPrivateProfile()
         profile.close()

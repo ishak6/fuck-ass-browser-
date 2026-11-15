@@ -40,6 +40,16 @@ class EphemeralPrivateProfileTest {
         assertTrue(snapshot.closed)
     }
 
+    @Test fun privateHistorySnapshotIsReadOnlyAndCleared() {
+        val profile = EphemeralPrivateProfile()
+        profile.addHistory("https://private.example/one")
+        val snapshot = profile.historyEntries()
+        assertEquals(listOf("https://private.example/one"), snapshot)
+        profile.clear()
+        assertEquals(listOf("https://private.example/one"), snapshot)
+        assertTrue(profile.historyEntries().isEmpty())
+    }
+
     @Test fun privateStoresEnforceEntryAndMemoryBudgets() {
         val profile = EphemeralPrivateProfile(
             PrivateProfileLimits(

@@ -54,6 +54,7 @@ import com.fuckass.browser.privacy.BrowserPrivacyPolicy
 import com.fuckass.browser.search.BuiltInSearchProviders
 import com.fuckass.browser.storage.EphemeralPrivateProfile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -85,6 +86,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf<LoadedPage?>(null) }
+    var navigationJob by remember { mutableStateOf<Job?>(null) }
+    var navigationGeneration by remember { mutableStateOf(0) }
 
     SideEffect {
         if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -94,6 +97,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     DisposableEffect(client, privateProfile, activity) {
         onDispose {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            navigationJob?.cancel()
+            client.cancelActiveRequests()
             client.close()
             privateProfile.close()
         }
@@ -113,10 +118,14 @@ private fun BrowserShell(activity: ComponentActivity) {
                     ?: BuiltInSearchProviders.find("ddg")!!.searchUri(raw).toString()
             else -> "https://$raw"
         }
+        navigationGeneration += 1
+        val requestGeneration = navigationGeneration
+        navigationJob?.cancel()
+        client.cancelActiveRequests()
         address = target
         loading = true
         error = null
-        scope.launch {
+        navigationJob = scope.launch {
             try {
                 val loaded = withContext(Dispatchers.IO) {
                     val response = client.execute(
@@ -144,11 +153,13 @@ private fun BrowserShell(activity: ComponentActivity) {
                     if (privateMode) privateProfile.addHistory(target)
                     LoadedPage(target, title, layout, response.statusCode)
                 }
-                page = loaded
+                if (requestGeneration == navigationGeneration) page = loaded
             } catch (failure: Exception) {
-                error = failure.message ?: "Page could not be loaded"
+                if (requestGeneration == navigationGeneration) {
+                    error = failure.message ?: "Page could not be loaded"
+                }
             } finally {
-                loading = false
+                if (requestGeneration == navigationGeneration) loading = false
             }
         }
     }
@@ -190,6 +201,12 @@ private fun BrowserShell(activity: ComponentActivity) {
                     }
                 }
                 OutlinedButton(onClick = {
+                    navigationGeneration += 1
+                    navigationJob?.cancel()
+                    client.cancelActiveRequests()
+                    client.clearCache()
+                    loading = false
+                    error = null
                     privateMode = !privateMode
                     privateProfile.clear()
                     page = null

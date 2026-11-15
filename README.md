@@ -11,7 +11,7 @@ The app contains an experimental first-party HTTPS navigation and rendering path
 - initial block/inline layout and Android Canvas display-list renderer
 - primitive, isolated JavaScript-like interpreter (not full ECMAScript)
 - network filter subset and local privacy policies
-- private in-memory session state and durable normal bookmark/history storage primitives
+- separate profile-scoped in-memory cookie jars, private-session state and durable normal bookmark/history storage primitives
 - native Compose browser shell with private-mode disclosure and request cancellation
 
 This is an early development browser, not a production-compatible replacement for Chromium. Complex websites, full modern JavaScript, service workers, flex/grid, WebGL, Widevine DRM and many media sites are not supported. Real-device rendering and media tests remain pending.

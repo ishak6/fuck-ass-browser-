@@ -1,6 +1,5 @@
 package com.fuckass.browser.search
 
-import java.net.IDN
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

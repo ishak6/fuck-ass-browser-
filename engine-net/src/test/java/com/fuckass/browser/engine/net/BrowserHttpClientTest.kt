@@ -402,7 +402,12 @@ class BrowserHttpClientTest {
         override fun getErrorStream(): java.io.InputStream? =
             if (status >= 400) java.io.ByteArrayInputStream(body) else null
         override fun getContentEncoding(): String? = null
-        override fun addRequestProperty(key: String?, value: String?) {\n            if (key != null && value != null) requestedHeaders[key] = requestedHeaders[key]?.let { \"$it, $value\" } ?: value\n        }\n        override fun setRequestProperty(key: String?, value: String?) {
+        override fun addRequestProperty(key: String?, value: String?) {
+            if (key != null && value != null) {
+                requestedHeaders[key] = requestedHeaders[key]?.let { it + ", " + value } ?: value
+            }
+        }
+        override fun setRequestProperty(key: String?, value: String?) {
             if (key != null && value != null) requestedHeaders[key] = value
         }
     }

@@ -332,14 +332,17 @@ private fun BrowserShell(activity: ComponentActivity) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(loaded.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            OutlinedButton(onClick = {
-                                runCatching {
-                                    persistentStore.saveBookmark(loaded.url, loaded.title)
-                                    bookmarkItems = persistentStore.bookmarks()
-                                }.onFailure { failure ->
-                                    error = failure.message ?: "Could not save bookmark"
-                                }
-                            }) { Text("Bookmark") }
+                            OutlinedButton(
+                                onClick = {
+                                    runCatching {
+                                        persistentStore.saveBookmark(loaded.url, loaded.title)
+                                        bookmarkItems = persistentStore.bookmarks()
+                                    }.onFailure { failure ->
+                                        error = failure.message ?: "Could not save bookmark"
+                                    }
+                                },
+                                enabled = !privateMode
+                            ) { Text("Bookmark") }
                         }
                         Text("${loaded.statusCode} • ${loaded.url}", style = MaterialTheme.typography.bodySmall)
                         Spacer(modifier = Modifier.height(8.dp))

@@ -152,7 +152,8 @@ class BrowserHttpClient(
                 connection.setRequestProperty("Accept-Encoding", "gzip")
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
                 headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-                cookieManager?.get(current.toURI(), headers)?.forEach { (name, values) ->
+                val cookieRequestHeaders = headers.mapValues { (_, value) -> listOf(value) }
+                cookieManager?.get(current.toURI(), cookieRequestHeaders)?.forEach { (name, values) ->
                     if (name.equals("Cookie", true)) {
                         connection.setRequestProperty(name, values.joinToString("; "))
                     } else {

@@ -106,7 +106,7 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                         val childIsBlock = child is HtmlElement && (
                             computedStyle(child, style)["display"] ?: if (child.tagName in BLOCK_TAGS) "block" else "inline"
                         ) == "block"
-                        if (childIsBlock || display == "block" && child is HtmlElement && child.tagName in BLOCK_TAGS) {
+                        if (childIsBlock) {
                             childY += renderNode(child, x, childY, width, style, depth + 1)
                             inlineX = x
                             maxInlineWidth = maxOf(maxInlineWidth, inlineX - x)
@@ -117,12 +117,14 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                         }
                     }
                     val explicitHeight = cssLength(style["height"], viewport.height)
-                    val height = explicitHeight ?: if (display == "block") (childY - y).coerceAtLeast(0f) else 20f
+                    val height = explicitHeight ?: if (display == "block") {
+                        maxOf(childY - y, if (maxInlineWidth > 0f) 20f else 0f)
+                    } else 20f
                     if (background != null && height > 0f) {
                         if (commands.size >= limits.maxCommands) throw IllegalArgumentException("Display command limit exceeded")
                         commands.add(commandStart, DisplayCommand.FillRect(LayoutRect(x, y, width, height), background))
                     }
-                    if (display == "block") height.coerceAtLeast(20f) else maxOf(height, 20f)
+                    if (display == "block") height.coerceAtLeast(20f) else maxInlineWidth
                 }
             }
         }

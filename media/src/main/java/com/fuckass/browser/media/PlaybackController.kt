@@ -42,7 +42,8 @@ class PlaybackController {
 
     @Synchronized fun seekTo(position: Long) {
         check(status != PlaybackStatus.IDLE && status != PlaybackStatus.ERROR)
-        positionMs = position.coerceAtLeast(0).let { durationMs?.let(it::coerceAtMost) ?: it }
+        val nonNegative = position.coerceAtLeast(0)
+        positionMs = durationMs?.let { duration -> nonNegative.coerceAtMost(duration) } ?: nonNegative
         if (durationMs != null && positionMs >= durationMs!!) status = PlaybackStatus.ENDED
         else if (status == PlaybackStatus.ENDED) status = PlaybackStatus.PAUSED
     }

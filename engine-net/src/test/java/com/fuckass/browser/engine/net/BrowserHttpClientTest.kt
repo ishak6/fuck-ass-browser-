@@ -80,6 +80,20 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun parsedFilterListCanBeInjectedIntoNetworkTransport() {
+        val policy = com.fuckass.browser.adblock.FilterList.parse("||ads.example^")
+        val client = BrowserHttpClient(filterPolicy = policy)
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://ads.example/banner.js", resourceType = "script"))
+            }
+            assertEquals("Request blocked by content policy", error.message)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun callerCannotOverrideTransportFramingHeaders() {
         val client = BrowserHttpClient()
         try {

@@ -251,7 +251,7 @@ class BrowserHttpClient(
 
     private fun validateHeader(name: String, value: String) {
         if (name.isBlank() || name.any { it <= ' ' || it == ':' || it == '\\' } ||
-            value.any { it == '\\r' || it == '\\n' }) {
+            value.any { it == '\r' || it == '\n' }) {
             throw BrowserNetworkException("Invalid request header")
         }
     }

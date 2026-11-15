@@ -148,4 +148,95 @@ class BrowserHttpClientTest {
             NetworkLimits(maxRequestBytes = -1)
         }
     }
+
+    @Test
+    fun crossOriginRedirectStripsAuthorizationAndCookie() {
+        val client = BrowserHttpClient()
+        val first = FakeConnection(URL("https://first.example/start"), 302,
+            mapOf("Location" to "https://second.example/final"))
+        val second = FakeConnection(URL("https://second.example/final"), 200, body = "ok".toByteArray())
+        client.connectionFactory = { url -> if (url.host == "first.example") first else second }
+        try {
+            val result = client.execute(BrowserHttpRequest(
+                "https://first.example/start",
+                headers = mapOf("Authorization" to "Bearer secret", "Cookie" to "session=secret"),
+                useCache = false
+            ))
+            assertEquals(200, result.statusCode)
+            assertFalse(second.requestedHeaders.keys.any { it.equals("Authorization", true) })
+            assertFalse(second.requestedHeaders.keys.any { it.equals("Cookie", true) })
+            assertFalse(first.instanceFollowRedirects)
+            assertTrue(first.disconnected)
+            assertTrue(second.disconnected)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun redirectDestinationIsCheckedByContentPolicyBeforeConnecting() {
+        val policy = NetworkFilterPolicy { url, _, _ -> url.endsWith("/blocked") }
+        val client = BrowserHttpClient(filterPolicy = policy)
+        val first = FakeConnection(URL("https://site.example/start"), 302, mapOf("Location" to "/blocked"))
+        var connectionCount = 0
+        client.connectionFactory = {
+            connectionCount++
+            first
+        }
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
+            }
+            assertEquals("Redirect blocked by content policy", error.message)
+            assertEquals(1, connectionCount)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun redirectCountIsBounded() {
+        val client = BrowserHttpClient(NetworkLimits(maxRedirects = 1))
+        var connectionCount = 0
+        client.connectionFactory = { url ->
+            connectionCount++
+            FakeConnection(url, 302, mapOf("Location" to "https://site.example/next"))
+        }
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
+            }
+            assertEquals("Too many redirects", error.message)
+            assertEquals(2, connectionCount)
+        } finally {
+            client.close()
+        }
+    }
+
+    private class FakeConnection(
+        url: URL,
+        private val status: Int,
+        private val responseHeaders: Map<String, String> = emptyMap(),
+        private val body: ByteArray = ByteArray(0)
+    ) : HttpURLConnection(url) {
+        val requestedHeaders = linkedMapOf<String, String>()
+        var disconnected = false
+
+        override fun connect() = Unit
+        override fun disconnect() { disconnected = true }
+        override fun usingProxy(): Boolean = false
+        override fun getResponseCode(): Int = status
+        override fun getHeaderField(name: String?): String? =
+            responseHeaders.entries.firstOrNull { it.key.equals(name, true) }?.value
+        override fun getHeaderFields(): MutableMap<String?, MutableList<String>> =
+            responseHeaders.entries.associate { it.key as String? to mutableListOf(it.value) }.toMutableMap()
+        override fun getInputStream(): java.io.InputStream = java.io.ByteArrayInputStream(body)
+        override fun getErrorStream(): java.io.InputStream? =
+            if (status >= 400) java.io.ByteArrayInputStream(body) else null
+        override fun getContentEncoding(): String? = null
+        override fun setRequestProperty(key: String?, value: String?) {
+            if (key != null && value != null) requestedHeaders[key] = value
+        }
+    }
+
 }

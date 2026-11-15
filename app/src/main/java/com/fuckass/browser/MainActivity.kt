@@ -86,6 +86,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     val privateProfile = remember { EphemeralPrivateProfile() }
     val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
     val generationCounter = remember { AtomicInteger(0) }
+    val navigationHistory = remember { BrowserNavigationHistory() }
     val sessionLock = remember { Any() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -97,6 +98,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     var error by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf<LoadedPage?>(null) }
     var navigationJob by remember { mutableStateOf<Job?>(null) }
+    var historySnapshot by remember { mutableStateOf(navigationHistory.snapshot()) }
 
     SideEffect {
         if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -117,7 +119,7 @@ private fun BrowserShell(activity: ComponentActivity) {
         }
     }
 
-    fun navigate(input: String) {
+    fun navigate(input: String, recordHistory: Boolean = true, onHistorySuccess: (() -> Unit)? = null) {
         val raw = input.trim()
         if (raw.isEmpty()) return
         val target = when {
@@ -173,7 +175,12 @@ private fun BrowserShell(activity: ComponentActivity) {
                     }
                     LoadedPage(target, title, layout, response.statusCode)
                 }
-                if (requestGeneration == generationCounter.get()) page = loaded
+                if (requestGeneration == generationCounter.get()) {
+                    if (onHistorySuccess != null) onHistorySuccess()
+                    else if (recordHistory) navigationHistory.record(target)
+                    historySnapshot = navigationHistory.snapshot()
+                    page = loaded
+                }
             } catch (failure: Exception) {
                 if (requestGeneration == generationCounter.get()) {
                     error = failure.message ?: "Page could not be loaded"
@@ -232,6 +239,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                     error = null
                     privateMode = !privateMode
                     privateProfile.clear()
+                    navigationHistory.reset()
+                    historySnapshot = navigationHistory.snapshot()
                     page = null
                     address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
@@ -253,6 +262,31 @@ private fun BrowserShell(activity: ComponentActivity) {
                         Text("Panic clear")
                     }
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        navigationHistory.previousUrl()?.let { target ->
+                            navigate(target, recordHistory = false) { navigationHistory.goBack() }
+                        }
+                    },
+                    enabled = historySnapshot.canGoBack && !loading
+                ) { Text("Back") }
+                OutlinedButton(
+                    onClick = {
+                        navigationHistory.nextUrl()?.let { target ->
+                            navigate(target, recordHistory = false) { navigationHistory.goForward() }
+                        }
+                    },
+                    enabled = historySnapshot.canGoForward && !loading
+                ) { Text("Forward") }
+                OutlinedButton(
+                    onClick = { if (address.isNotBlank()) navigate(address, recordHistory = false) },
+                    enabled = address.isNotBlank() && !loading
+                ) { Text("Refresh") }
             }
             if (privateMode) {
                 Text(

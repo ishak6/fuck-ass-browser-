@@ -129,7 +129,15 @@ class BrowserHttpClient(
         }
 
         val cacheKey = "$method $initial"
-        if (method == "GET" && request.useCache) {
+        val hasCredentialHeader = headers.keys.any {
+            it.equals("Authorization", true) || it.equals("Cookie", true)
+        }
+        val requestCacheControl = headers.entries.firstOrNull { it.key.equals("Cache-Control", true) }
+            ?.value?.lowercase(Locale.ROOT).orEmpty()
+        // The simple URL-only cache is never used with a cookie jar or credentials.
+        val cacheEligible = method == "GET" && request.useCache && cookieManager == null &&
+            !hasCredentialHeader && "no-store" !in requestCacheControl && "no-cache" !in requestCacheControl
+        if (cacheEligible) {
             cached(cacheKey)?.let { return it.copy(fromCache = true) }
         }
 
@@ -209,7 +217,7 @@ class BrowserHttpClient(
                     .mapValues { it.value?.toList() ?: emptyList() }
                 cookieManager?.put(current.toURI(), responseHeaders)
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)
-                if (method == "GET" && request.useCache && status == 200 && CachePolicy.isCacheSafe(responseHeaders)) {
+                if (cacheEligible && status == 200 && CachePolicy.isCacheSafe(responseHeaders)) {
                     store(cacheKey, response, CachePolicy.lifetimeMs(responseHeaders))
                 }
                 return response

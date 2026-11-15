@@ -117,8 +117,7 @@ class FileBrowserDataStore(private val directory: File) : BrowserDataStore {
                     StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE
                 )
             } catch (_: AtomicMoveNotSupportedException) {
-                if (dataFile.exists() && !dataFile.delete()) throw IOException("Could not replace browser data")
-                if (!tempFile.renameTo(dataFile)) throw IOException("Could not commit browser data")
+                Files.move(tempFile.toPath(), dataFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
         } catch (failure: Exception) {
             tempFile.delete()

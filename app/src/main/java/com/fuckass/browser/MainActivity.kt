@@ -194,7 +194,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                 OutlinedButton(onClick = {
                     privateMode = !privateMode
                     privateProfile.clear()
-                    if (privateMode) { page = null; address = "" }
+                    page = null
+                    address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
                 if (privateMode) {
                     OutlinedButton(onClick = { privateProfile.clear(); page = null; address = "" }) {

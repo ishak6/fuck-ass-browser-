@@ -138,7 +138,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                             url = target,
                             resourceType = "document",
                             topLevelUrl = target,
-                            useCache = !privateMode
+                            useCache = !privateModeAtStart
                         )
                     )
                     if (response.statusCode !in 200..299) {
@@ -223,7 +223,17 @@ private fun BrowserShell(activity: ComponentActivity) {
                     address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
                 if (privateMode) {
-                    OutlinedButton(onClick = { privateProfile.clear(); page = null; address = "" }) {
+                    OutlinedButton(onClick = {
+                        synchronized(sessionLock) { generationCounter.incrementAndGet() }
+                        navigationJob?.cancel()
+                        client.cancelActiveRequests()
+                        client.clearCache()
+                        privateProfile.clear()
+                        loading = false
+                        error = null
+                        page = null
+                        address = ""
+                    }) {
                         Text("Panic clear")
                     }
                 }

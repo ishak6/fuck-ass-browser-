@@ -385,11 +385,12 @@ private fun BrowserShell(activity: ComponentActivity) {
                             OutlinedButton(
                                 onClick = {
                                     if (loadedHost != null) {
-                                        if (alwaysPrivate) {
-                                            privateSiteHosts = privateSiteStore.remove(loadedHost)
-                                        } else {
-                                            privateSiteHosts = privateSiteStore.add(loadedHost)
-                                            if (!privateMode) {
+                                        runCatching {
+                                            if (alwaysPrivate) privateSiteStore.remove(loadedHost)
+                                            else privateSiteStore.add(loadedHost)
+                                        }.onSuccess { updatedHosts ->
+                                            privateSiteHosts = updatedHosts
+                                            if (!alwaysPrivate && !privateMode) {
                                                 privateMode = true
                                                 privateProfile.clear()
                                                 historyItems = emptyList()
@@ -399,6 +400,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                                                 address = ""
                                                 navigate(loaded.url)
                                             }
+                                        }.onFailure { failure ->
+                                            error = failure.message ?: "Could not update private-site rules"
                                         }
                                     }
                                 },

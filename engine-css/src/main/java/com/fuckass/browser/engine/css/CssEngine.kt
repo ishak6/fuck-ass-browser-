@@ -74,7 +74,7 @@ data class CssParserLimits(
 class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
     fun parse(source: String): List<CssRule> {
         require(source.length <= limits.maxInputChars) { "CSS input exceeds configured limit" }
-        val css = source
+        val css = stripComments(source)
         val rules = mutableListOf<CssRule>()
         var cursor = 0
         while (cursor < css.length && rules.size < limits.maxRules) {
@@ -102,6 +102,41 @@ class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
             cursor = close + 1
         }
         return rules
+    }
+
+    private fun stripComments(source: String): String {
+        val output = StringBuilder(source.length)
+        var quote: Char? = null
+        var index = 0
+        while (index < source.length) {
+            val current = source[index]
+            if (quote != null) {
+                output.append(current)
+                if (current == '\\\\' && index + 1 < source.length) {
+                    output.append(source[index + 1])
+                    index += 2
+                    continue
+                }
+                if (current == quote) quote = null
+                index++
+            } else if (current == '"' || current == '\\'') {
+                quote = current
+                output.append(current)
+                index++
+            } else if (source.startsWith("/*", index)) {
+                val end = source.indexOf("*/", index + 2)
+                if (end < 0) {
+                    output.append(' ')
+                    break
+                }
+                output.append(' ')
+                index = end + 2
+            } else {
+                output.append(current)
+                index++
+            }
+        }
+        return output.toString()
     }
 
     private fun parseSelector(source: String): CssSelector? {
@@ -208,6 +243,7 @@ class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
         val result = mutableListOf<String>()
         var start = 0
         var depth = 0
+        var bracketDepth = 0
         var quote: Char? = null
         value.forEachIndexed { index, c ->
             if (quote != null) {
@@ -216,7 +252,9 @@ class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
                 '"', '\'' -> quote = c
                 '(' -> depth++
                 ')' -> if (depth > 0) depth--
-                delimiter -> if (depth == 0) {
+                '[' -> bracketDepth++
+                ']' -> if (bracketDepth > 0) bracketDepth--
+                delimiter -> if (depth == 0 && bracketDepth == 0) {
                     result += value.substring(start, index)
                     start = index + 1
                 }

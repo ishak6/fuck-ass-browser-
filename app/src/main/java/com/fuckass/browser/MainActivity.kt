@@ -101,7 +101,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     var bookmarkMenu by remember { mutableStateOf(false) }
     var bookmarkItems by remember { mutableStateOf(persistentStore.bookmarks()) }
     var historyMenu by remember { mutableStateOf(false) }
-    var historyItems by remember { mutableStateOf(persistentStore.history().map { it.first }) }
+    var historyItems by remember { mutableStateOf(persistentStore.history().asReversed().map { it.first }) }
     var privateMode by remember { mutableStateOf(false) }
     var privateSiteHosts by remember { mutableStateOf(privateSiteStore.hosts()) }
     val privateSiteRules = remember(privateSiteHosts) { PrivateSiteRules(privateSiteHosts) }

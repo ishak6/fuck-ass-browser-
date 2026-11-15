@@ -286,19 +286,19 @@ class BrowserHttpClientTest {
     @Test
     fun cookieJarStoresAndSendsCookiesOnlyToMatchingOrigin() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        cookies.cookieStore.add(URI("https://site.example/"), HttpCookie("session", "private"))
+        cookies.cookieStore.add(URI("https://www.example.com/"), HttpCookie("session", "private"))
         val client = BrowserHttpClient(cookieManager = cookies)
-        val nextRequest = FakeConnection(URL("https://site.example/next"), 200, body = "ok".toByteArray())
+        val nextRequest = FakeConnection(URL("https://www.example.com/next"), 200, body = "ok".toByteArray())
         client.connectionFactory = { nextRequest }
         try {
-            client.execute(BrowserHttpRequest("https://site.example/next", useCache = false))
+            client.execute(BrowserHttpRequest("https://www.example.com/next", useCache = false))
             val cookieHeader = nextRequest.requestedHeaders.entries
                 .firstOrNull { it.key.equals("Cookie", true) }?.value.orEmpty()
             assertTrue(cookieHeader.contains("session=private"))
             client.clearCookies()
-            val thirdRequest = FakeConnection(URL("https://site.example/after-clear"), 200)
+            val thirdRequest = FakeConnection(URL("https://www.example.com/after-clear"), 200)
             client.connectionFactory = { thirdRequest }
-            client.execute(BrowserHttpRequest("https://site.example/after-clear", useCache = false))
+            client.execute(BrowserHttpRequest("https://www.example.com/after-clear", useCache = false))
             assertFalse(thirdRequest.requestedHeaders.keys.any { it.equals("Cookie", true) })
         } finally {
             client.close()
@@ -310,14 +310,14 @@ class BrowserHttpClientTest {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         val client = BrowserHttpClient(cookieManager = cookies)
         val response = FakeConnection(
-            URL("https://site.example/start"),
+            URL("https://www.example.com/start"),
             200,
             mapOf("Set-Cookie" to "session=private; Path=/"),
             "ok".toByteArray()
         )
         client.connectionFactory = { response }
         try {
-            client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
+            client.execute(BrowserHttpRequest("https://www.example.com/start", useCache = false))
             assertTrue(cookies.cookieStore.cookies.any { it.name == "session" && it.value == "private" })
         } finally {
             client.close()

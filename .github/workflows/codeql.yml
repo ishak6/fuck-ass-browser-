@@ -44,7 +44,7 @@ jobs:
           languages: java-kotlin
           build-mode: manual
       - name: Build Kotlin and Java sources
-        run: ./gradlew clean assembleDebug test
+        run: ./gradlew --no-daemon --no-build-cache clean assembleDebug test
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4
         with:

@@ -2,8 +2,12 @@ package com.fuckass.browser.engine.net
 
 import com.fuckass.browser.adblock.NetworkFilterPolicy
 import com.fuckass.browser.privacy.RequestPrivacyPolicy
+import java.net.HttpURLConnection
+import java.net.URL
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BrowserHttpClientTest {

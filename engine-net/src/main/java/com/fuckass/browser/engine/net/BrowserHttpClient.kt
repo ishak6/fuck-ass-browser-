@@ -67,6 +67,12 @@ class BrowserHttpClient(
     private val cache = object : LinkedHashMap<String, CacheEntry>(16, 0.75f, true) {}
     private var cacheBytes = 0
 
+    // Internal seam for deterministic redirect tests; production uses the platform URLConnection.
+    internal var connectionFactory: (URL) -> HttpURLConnection = { url ->
+        (url.openConnection() as? HttpURLConnection)
+            ?: throw BrowserNetworkException("Unsupported connection type")
+    }
+
     @Synchronized
     override fun close() {
         closed.set(true)
@@ -115,8 +121,7 @@ class BrowserHttpClient(
         validateHeaders(headers)
         repeat(limits.maxRedirects + 1) { redirectIndex ->
             check(!closed.get()) { "Network client is closed" }
-            val connection = (current.openConnection() as? HttpURLConnection)
-                ?: throw BrowserNetworkException("Unsupported connection type")
+            val connection = connectionFactory(current)
             try {
                 connection.instanceFollowRedirects = false
                 connection.connectTimeout = limits.connectTimeoutMs

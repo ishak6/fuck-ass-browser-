@@ -162,3 +162,15 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 - M11: Compose browser shell integrates HTTPS navigation, search provider selection, first-party HTML/CSS layout and Canvas drawing; private mode clears in-memory profile, uses FLAG_SECURE and shows IP disclosure. Tab persistence, app lock, neutral launcher identity, full settings/permissions UI and instrumented tests remain pending.
 - Current verification is being driven by GitHub Actions. No local Android SDK/emulator is available; no physical-device tests are claimed.
 - Consolidated CI run #24 passed on commit `5bcc64d6f0`: debug APK build, unit tests, Android lint and APK artifact upload all succeeded. This verifies the current source snapshot on CI, not full browser feature completeness.
+
+## Full pipeline hardening — 2026-11-16
+- M2: corrected HTTP 303 handling to preserve HEAD; added privacy-header recomputation and active-request cancellation regression tests. Real TLS/device integration remains pending.
+- M3: filter target hosts now canonicalize IDN and trailing dots; request transport integration test added. Third-party classification remains a documented hostname approximation.
+- M4: private-site rules normalize IDN. Private-mode transitions and panic clear cancel navigation and clear the in-memory cache/profile.
+- M5: search-provider endpoint validation rejects userinfo/fragments; bang shortcuts now resolve case-insensitively.
+- M6: DOM mutations reject self/ancestor cycles.
+- M9: interpreter expression evaluation consumes execution budget and expression complexity is bounded.
+- M10: private-profile stores now have explicit memory/count limits and zero replaced cache buffers; a file-backed durable normal bookmark/history store was added with persistence tests.
+- M11: navigation generations stop stale requests from updating a new session; normal history and private history are routed to separate stores.
+- M12: final clean release build, integration/security/performance audit, signed artifact and device compatibility checks remain outstanding.
+- CI: historical run #24 passed, but all commits after `5bcc64d6f0` require their own successful Actions result before the latest source snapshot is verified.

@@ -14,6 +14,17 @@ class SearchProviderTest {
         assertTrue(uri.toString().contains("q=cats+%26+dogs"))
     }
 
+    @Test fun rejectsUnsafeSearchProviderEndpoints() {
+        try {
+            UrlTemplateSearchProvider("custom", "Custom", "https://user@search.example/", "q")
+            throw AssertionError("Expected userinfo rejection")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            UrlTemplateSearchProvider("custom", "Custom", "https://search.example/#fragment", "q")
+            throw AssertionError("Expected fragment rejection")
+        } catch (_: IllegalArgumentException) { }
+    }
+
     @Test fun builtInProvidersHaveUniqueIdsAndHttpsEndpoints() {
         assertEquals(BuiltInSearchProviders.all.size, BuiltInSearchProviders.all.map { it.id }.toSet().size)
         assertTrue(BuiltInSearchProviders.all.all { it.searchUri("test").scheme == "https" })
@@ -37,6 +48,12 @@ class SearchProviderTest {
         val request = SearchBangParser.resolve("!g native browser engine", "ddg")
         assertEquals("google", request.providerId)
         assertEquals("native browser engine", request.query)
+    }
+
+    @Test fun bangShortcutsAreCaseInsensitive() {
+        val request = SearchBangParser.resolve("!G Kotlin browser", "ddg")
+        assertEquals("google", request.providerId)
+        assertEquals("Kotlin browser", request.query)
     }
 
     @Test fun unknownBangRemainsInQuery() {

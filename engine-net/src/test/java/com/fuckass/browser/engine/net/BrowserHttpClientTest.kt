@@ -2,10 +2,14 @@ package com.fuckass.browser.engine.net
 
 import com.fuckass.browser.adblock.NetworkFilterPolicy
 import com.fuckass.browser.privacy.RequestPrivacyPolicy
+import com.fuckass.browser.privacy.BrowserPrivacyPolicy
+import com.fuckass.browser.privacy.PrivacySettings
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URI
+import java.net.HttpCookie
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
@@ -208,6 +212,24 @@ class BrowserHttpClientTest {
             assertEquals(200, result.statusCode)
             assertEquals("first.example", first.requestedHeaders["X-Policy-Host"])
             assertEquals("second.example", second.requestedHeaders["X-Policy-Host"])
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun explicitCookieStrippingPreventsProfileCookieAttachment() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        cookies.cookieStore.add(URI("https://site.example/"), HttpCookie("session", "secret"))
+        val client = BrowserHttpClient(
+            privacyPolicy = BrowserPrivacyPolicy(PrivacySettings(stripCookieHeaders = true)),
+            cookieManager = cookies
+        )
+        val connection = FakeConnection(URL("https://site.example/page"), 200)
+        client.connectionFactory = { connection }
+        try {
+            client.execute(BrowserHttpRequest("https://site.example/page", useCache = false))
+            assertFalse(connection.requestedHeaders.keys.any { it.equals("Cookie", true) })
         } finally {
             client.close()
         }

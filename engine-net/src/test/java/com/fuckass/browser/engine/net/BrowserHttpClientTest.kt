@@ -311,6 +311,30 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun redirectResponseCookiesAreAvailableOnTheNextHop() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        val client = BrowserHttpClient(cookieManager = cookies)
+        val redirect = FakeConnection(
+            URL("https://www.example.com/start"),
+            302,
+            mapOf(
+                "Location" to "/final",
+                "Set-Cookie" to "redirect-session=ok; Path=/"
+            )
+        )
+        val final = FakeConnection(URL("https://www.example.com/final"), 200)
+        client.connectionFactory = { url -> if (url.path == "/start") redirect else final }
+        try {
+            client.execute(BrowserHttpRequest("https://www.example.com/start", useCache = false))
+            val cookieHeader = final.requestedHeaders.entries
+                .firstOrNull { it.key.equals("Cookie", true) }?.value.orEmpty()
+            assertTrue(cookieHeader.contains("redirect-session=ok"))
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun responseSetCookieIsStoredInTheProfileCookieJar() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         val client = BrowserHttpClient(cookieManager = cookies)

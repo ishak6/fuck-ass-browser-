@@ -1,6 +1,6 @@
 # Feature Tracker
 
-Status definitions: **Done** = implemented and covered by a passing repeatable test; **Partial** = implemented subset or incomplete verification; **Not started** = no qualifying implementation/test. At initial reset, all product features are Not started.
+Status definitions: **Done** = implemented and covered by a passing repeatable test; **Partial** = implemented subset or incomplete verification; **Not started** = no qualifying implementation/test. Infrastructure M1 (Gradle modules, Compose shell and CI) is Done after GitHub Actions run #3 passed. Product features remain individually tracked below.
 
 | Feature | Module | Status | Test that proves it |
 |---|---|---|---|
@@ -15,13 +15,13 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Layout engine | :engine-render | Not started | Geometry golden tests |
 | Rendering/drawing | :engine-render | Not started | Pixel/display-list golden tests |
 | Hardware acceleration | :engine-render | Not started | Device benchmark + correctness |
-| Networking HTTP | :engine-net | Not started | Local HTTP integration tests |
-| TLS validation | :engine-net | Not started | Valid/invalid certificate tests |
-| HTTPS-only | :engine-net/:privacy | Not started | HTTP upgrade/block tests |
+| Networking HTTP | :engine-net | Partial | Transport implemented; local HTTPS/redirect integration tests pending |
+| TLS validation | :engine-net | Partial | Platform TLS trust/hostname verification used; valid/invalid certificate integration tests pending |
+| HTTPS-only | :engine-net/:privacy | Partial | Cleartext and HTTPS-downgrade rejection unit tests |
 | DNS over HTTPS | :engine-net | Not started | Controlled DoH endpoint/leak tests |
 | Page loading | :engine-net | Not started | Deterministic page-load integration |
-| Cache management | :engine-net | Not started | Hit/expiry/invalidation tests |
-| Resource management | :engine-net | Not started | Size/concurrency/timeout tests |
+| Cache management | :engine-net | Partial | Bounded in-memory GET cache implemented; cache-control/expiry integration tests pending |
+| Resource management | :engine-net | Partial | Redirect/timeouts/response-size limits implemented; concurrency stress tests pending |
 | Website ad blocking | :adblock | Not started | Pinned filter URL fixtures |
 | Video ad blocking | :adblock | Not started | Request-rule fixtures; site limits documented |
 | Popup blocking | :adblock | Not started | Navigation policy tests |

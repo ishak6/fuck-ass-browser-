@@ -1,5 +1,6 @@
 package com.fuckass.browser.tools
 
+import com.fuckass.browser.engine.html.HtmlComment
 import com.fuckass.browser.engine.html.HtmlDocument
 import com.fuckass.browser.engine.html.HtmlElement
 import com.fuckass.browser.engine.html.HtmlNode
@@ -27,6 +28,7 @@ class ReaderModeExtractor {
         fun appendNode(node: HtmlNode) {
             when (node) {
                 is HtmlText -> append(node.data).append(' ')
+                is HtmlComment -> Unit
                 is HtmlElement -> if (node.tagName !in IGNORED_TAGS) node.children.forEach(::appendNode)
             }
         }

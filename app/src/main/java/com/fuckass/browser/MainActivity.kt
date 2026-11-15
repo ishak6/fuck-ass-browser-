@@ -254,6 +254,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                         privateClient.clearCache()
                         privateClient.clearCookies()
                         privateProfile.clear()
+                        navigationHistory.reset()
+                        historySnapshot = navigationHistory.snapshot()
                         loading = false
                         error = null
                         page = null

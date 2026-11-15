@@ -377,6 +377,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
                         val loadedHost = runCatching { URI(loaded.url).host }.getOrNull()
                         val alwaysPrivate = privateSiteRules.matches(loaded.url)
+                        val matchedPrivateRule = loadedHost?.let { host ->
+                            privateSiteHosts.firstOrNull { host == it || host.endsWith(".$it") }
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -386,8 +389,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                                 onClick = {
                                     if (loadedHost != null) {
                                         runCatching {
-                                            if (alwaysPrivate) privateSiteStore.remove(loadedHost)
-                                            else privateSiteStore.add(loadedHost)
+                                            if (alwaysPrivate && matchedPrivateRule != null) {
+                                                privateSiteStore.remove(matchedPrivateRule)
+                                            } else privateSiteStore.add(loadedHost)
                                         }.onSuccess { updatedHosts ->
                                             privateSiteHosts = updatedHosts
                                             if (!alwaysPrivate && !privateMode) {

@@ -80,6 +80,7 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                     val display = style["display"] ?: if (node.tagName in BLOCK_TAGS) "block" else "inline"
                     val width = cssLength(style["width"], availableWidth) ?: availableWidth
                     val background = parseColor(style["background-color"])
+                    val commandStart = commands.size
                     var childY = y
                     var inlineX = x
                     var maxInlineWidth = 0f
@@ -99,7 +100,10 @@ class LayoutEngine(private val limits: LayoutLimits = LayoutLimits()) {
                     }
                     val explicitHeight = cssLength(style["height"], viewport.height)
                     val height = explicitHeight ?: if (display == "block") (childY - y).coerceAtLeast(0f) else 20f
-                    if (background != null && height > 0f) add(DisplayCommand.FillRect(LayoutRect(x, y, width, height), background))
+                    if (background != null && height > 0f) {
+                        if (commands.size >= limits.maxCommands) throw IllegalArgumentException("Display command limit exceeded")
+                        commands.add(commandStart, DisplayCommand.FillRect(LayoutRect(x, y, width, height), background))
+                    }
                     if (display == "block") height.coerceAtLeast(20f) else maxOf(height, 20f)
                 }
             }

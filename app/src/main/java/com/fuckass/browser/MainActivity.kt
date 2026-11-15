@@ -39,7 +39,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.fuckass.browser.engine.html.HtmlDocument
+import com.fuckass.browser.engine.html.HtmlComment
 import com.fuckass.browser.engine.html.HtmlElement
 import com.fuckass.browser.engine.html.HtmlText
 import com.fuckass.browser.engine.html.HtmlTokenizer
@@ -242,6 +242,7 @@ private fun elementText(element: HtmlElement): String = buildString {
     fun appendChildren(node: com.fuckass.browser.engine.html.HtmlNode) {
         when (node) {
             is HtmlText -> append(node.data).append(' ')
+            is HtmlComment -> Unit
             is HtmlElement -> node.children.forEach(::appendChildren)
         }
     }

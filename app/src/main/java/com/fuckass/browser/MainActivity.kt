@@ -144,7 +144,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                     ?: BuiltInSearchProviders.find("ddg")!!.searchUri(raw).toString()
             else -> "https://$raw"
         }
-        val autoPrivate = privateSiteRules.matches(target)
+        val autoPrivate = !privateMode && requiresPrivateSession(false, target, privateSiteRules)
         if (autoPrivate && !privateMode) {
             synchronized(sessionLock) { generationCounter.incrementAndGet() }
             navigationJob?.cancel()
@@ -161,7 +161,7 @@ private fun BrowserShell(activity: ComponentActivity) {
             page = null
         }
         val requestGeneration = generationCounter.incrementAndGet()
-        val privateModeAtStart = privateMode || autoPrivate
+        val privateModeAtStart = requiresPrivateSession(privateMode, target, privateSiteRules)
         val requestClient = if (privateModeAtStart) privateClient else normalClient
         navigationJob?.cancel()
         normalClient.cancelActiveRequests()

@@ -210,6 +210,26 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun seeOtherRedirectPreservesHeadMethod() {
+        val client = BrowserHttpClient()
+        val first = FakeConnection(URL("https://first.example/start"), 303,
+            mapOf("Location" to "https://second.example/final"))
+        val second = FakeConnection(URL("https://second.example/final"), 200)
+        client.connectionFactory = { url -> if (url.host == "first.example") first else second }
+        try {
+            val response = client.execute(BrowserHttpRequest(
+                "https://first.example/start",
+                method = "HEAD",
+                useCache = false
+            ))
+            assertEquals(200, response.statusCode)
+            assertEquals("HEAD", second.requestMethod)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun redirectDestinationIsCheckedByContentPolicyBeforeConnecting() {
         val policy = NetworkFilterPolicy { url, _, _ -> url.endsWith("/blocked") }
         val client = BrowserHttpClient(filterPolicy = policy)

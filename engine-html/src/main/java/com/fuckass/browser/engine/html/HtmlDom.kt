@@ -16,6 +16,12 @@ class HtmlElement(
     val children: List<HtmlNode> get() = mutableChildren.toList()
 
     fun appendChild(node: HtmlNode) {
+        require(node !== this) { "An element cannot contain itself" }
+        var ancestor: HtmlElement? = this
+        while (ancestor != null) {
+            require(ancestor !== node) { "Appending this node would create a DOM cycle" }
+            ancestor = ancestor.parent
+        }
         node.parent?.removeChild(node)
         node.parent = this
         mutableChildren += node

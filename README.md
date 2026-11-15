@@ -18,4 +18,4 @@ This is an early development browser, not a production-compatible replacement fo
 
 **Engine policy:** no Android WebView, GeckoView, Chromium or third-party browser rendering engine. No telemetry or mandatory account. No DRM, age-verification or access-control bypass.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [FEATURES.md](FEATURES.md), [ROADMAP.md](ROADMAP.md), [MILESTONE_PIPELINE.md](MILESTONE_PIPELINE.md) and [PROGRESS.md](PROGRESS.md).
+See [ARCHITECTURE.md](ARCHITECTURE.md), [FEATURES.md](FEATURES.md), [ROADMAP.md](ROADMAP.md), [MILESTONE_PIPELINE.md](MILESTONE_PIPELINE.md), [PROGRESS.md](PROGRESS.md) and [THREAT_MODEL.md](THREAT_MODEL.md).

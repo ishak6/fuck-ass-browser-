@@ -160,12 +160,14 @@ class BrowserHttpClient(
                 connection.setRequestProperty("Accept-Encoding", "gzip")
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
                 headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-                val cookieRequestHeaders = headers.mapValues { (_, value) -> listOf(value) }
-                cookieManager?.get(current.toURI(), cookieRequestHeaders)?.forEach { (name, values) ->
-                    if (name.equals("Cookie", true)) {
-                        connection.setRequestProperty(name, values.joinToString("; "))
-                    } else {
-                        values.forEach { value -> connection.addRequestProperty(name, value) }
+                if (privacyPolicy.allowCookies(current.toString())) {
+                    val cookieRequestHeaders = headers.mapValues { (_, value) -> listOf(value) }
+                    cookieManager?.get(current.toURI(), cookieRequestHeaders)?.forEach { (name, values) ->
+                        if (name.equals("Cookie", true)) {
+                            connection.setRequestProperty(name, values.joinToString("; "))
+                        } else {
+                            values.forEach { value -> connection.addRequestProperty(name, value) }
+                        }
                     }
                 }
                 if (currentMethod == "POST") {

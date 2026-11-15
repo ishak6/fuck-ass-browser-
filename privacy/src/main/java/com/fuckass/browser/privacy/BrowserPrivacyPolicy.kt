@@ -1,5 +1,6 @@
 package com.fuckass.browser.privacy
 
+import java.net.IDN
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -112,8 +113,13 @@ class PrivateSiteRules(hosts: Set<String> = emptySet()) {
 
     companion object {
         private fun normalizeHost(value: String): String? {
-            val host = value.trim().lowercase(Locale.ROOT).trimEnd('.')
-            if (host.isBlank() || host.length > 253 || host.contains('/') || host.contains('@')) return null
+            val input = value.trim().trimEnd('.')
+            if (input.isBlank() || input.length > 253 || input.contains('/') || input.contains('@') ||
+                input.contains(':') || input.contains('*')
+            ) return null
+            val host = runCatching { IDN.toASCII(input, IDN.USE_STD3_ASCII_RULES) }
+                .getOrNull()?.lowercase(Locale.ROOT) ?: return null
+            if (host.length > 253) return null
             val labels = host.split('.')
             if (labels.size < 2) return null
             if (labels.any { label ->

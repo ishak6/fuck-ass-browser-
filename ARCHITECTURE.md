@@ -49,7 +49,10 @@
 - HTTPS by default; cleartext disabled in production.
 - Strict scheme and redirect validation; bounded response size, concurrency and timeouts.
 - Page content is untrusted; no Android application privileges exposed to page scripts.
-- Origin-scoped storage and ephemeral private profiles.
+- Origin-scoped storage and ephemeral private profiles. Private profiles use separate in-memory/session-only cookie, cache, history, form and download state; private close/panic cleanup must be verified by storage inspection.
+- User-configured private-site rules route matching destinations into isolated private tabs. Private UI uses FLAG_SECURE, redacted notifications and optional app-lock/neutral launcher identity. Platform launcher alias behavior may vary.
+- Private mode does not hide the network address: destination sites still observe the user's IP unless a separately configured network privacy service changes routing. DoH protects DNS queries only; VPN/Tor have separate trust, availability and leak limitations. No anonymity or Tor Browser equivalence claim.
+- Site notifications default to denied in private mode. Popup/redirect/download defenses are policy decisions; APK downloads and fake update prompts are blocked by default. Age-verification and other access-control bypass is explicitly out of scope.
 - Secrets encrypted with Android Keystore; never log credentials or page content.
 - DoH, WebRTC controls, fingerprinting mitigation and VPN/Tor require leak tests; no anonymity equivalence claims.
 - DRM only through authorized platform/provider support. No DRM/access-control bypass.

@@ -116,3 +116,23 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Debug APK artifact | CI | Not started | APK artifact download/inspection |
 | Release APK | CI | Not started | Signed APK verification |
 | Installation testing | CI/:app | Not started | Emulator install and launch |
+
+| Private-site rules (user-defined always-private list) | :privacy/:storage/:app | Not started | Rule precedence and auto-private tab routing tests |
+| Isolated private tab profile | :privacy/:storage | Not started | Storage inspection proves no history, cookies, cache, form data or download-list persistence |
+| Private-tab close cleanup | :privacy/:storage | Not started | Close-tab storage inspection test |
+| Panic button (close all private tabs + wipe) | :privacy/:storage/:app | Not started | Panic action test verifies all ephemeral stores are empty |
+| Private-tab PIN/biometric lock | :privacy/:app | Not started | Lock-state, biometric cancellation and lifecycle tests |
+| FLAG_SECURE for private surfaces | :app | Not started | Instrumented window flag and screenshot/recents behavior test |
+| Neutral app icon/name option | :app | Not started | Launcher alias enable/disable instrumentation test; platform launcher caveats documented |
+| Private notification redaction | :app/:privacy | Not started | Notification content inspection test |
+| Private popup/pop-under and forced-redirect blocking | :adblock/:privacy/:engine-net | Not started | Navigation decision fixtures and redirect integration tests |
+| Malvertising/fake-virus interstitial blocking | :adblock | Not started | Pinned malicious-pattern fixtures; false-positive tests |
+| Auto-APK and fake-player-update download blocking | :adblock/:engine-net/:media | Not started | Download policy fixtures; explicit trusted-download exception tests |
+| Deny site notification permission by default | :privacy/:app | Not started | Permission default and user-override tests |
+| Video overlay ad filtering | :adblock/:engine-render/:media | Not started | Cosmetic rule fixtures on controlled test pages |
+| Per-site autoplay toggle | :privacy/:media/:app | Not started | Per-site autoplay policy state tests |
+| Private-mode fullscreen/landscape/seek/speed/PiP | :media/:app | Not started | Instrumented playback controls and lifecycle tests |
+| Optional private-mode background audio | :media/:app | Not started | Audio focus and explicit opt-in service lifecycle test |
+| Honest private-mode IP disclosure | :privacy/:app | Not started | UI copy test asserts IP visibility disclosure |
+| DoH/VPN/Tor options and limitations | :privacy/:engine-net/:app | Not started | DNS/routing leak tests and limitation-copy assertions |
+| Age-verification/access-control bypass | Not supported | Not started | Explicitly excluded; no bypass implementation or tests |

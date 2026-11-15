@@ -7,6 +7,7 @@
 - M1 verification: GitHub Actions run #3 succeeded; all 11 job steps passed (wrapper generation, debug APK, unit tests, lint, artifact upload).
 - Debug APK artifact: `custom-browser-debug-apk`, artifact ID `14177260929`, approximately 9.0 MB.
 - Current milestone: M2 — network engine.
+- New user requirement recorded: private-site mode (isolated ephemeral profile, user-defined site list, panic wipe, lock/FLAG_SECURE, notification redaction, aggressive popup/redirect/download defenses, media controls, and honest IP/DoH/VPN/Tor disclosures). Planned across M4, M10 and M11; not implemented yet.
 - M2 implementation in progress: platform TLS transport, request policy hooks, HTTPS-only baseline, bounded redirects/body/cache, deterministic policy tests.
 - Next: run CI, fix failures, then continue M2 integration coverage before marking the milestone complete.
 

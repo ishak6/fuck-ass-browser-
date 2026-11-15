@@ -38,6 +38,7 @@ data class NetworkLimits(
     val readTimeoutMs: Int = 15_000,
     val maxRedirects: Int = 8,
     val maxResponseBytes: Int = 5 * 1024 * 1024,
+    val maxRequestBytes: Int = 2 * 1024 * 1024,
     val maxCacheBytes: Int = 8 * 1024 * 1024
 ) {
     init {
@@ -45,6 +46,7 @@ data class NetworkLimits(
         require(readTimeoutMs in 1..120_000)
         require(maxRedirects in 0..20)
         require(maxResponseBytes in 1..50 * 1024 * 1024)
+        require(maxRequestBytes in 0..10 * 1024 * 1024)
         require(maxCacheBytes in 0..100 * 1024 * 1024)
     }
 }
@@ -90,6 +92,9 @@ class BrowserHttpClient(
         if (method != "POST" && request.body != null) {
             throw BrowserNetworkException("Request body is only supported for POST")
         }
+        if ((request.body?.size ?: 0) > limits.maxRequestBytes) {
+            throw BrowserNetworkException("Request body exceeds configured size limit")
+        }
 
         val sanitized = privacyPolicy.sanitizeUrl(request.url)
             ?: throw BrowserNetworkException("Request rejected by privacy policy")
@@ -107,6 +112,7 @@ class BrowserHttpClient(
         var currentMethod = method
         var currentBody = request.body
         var headers = privacyPolicy.requestHeaders(current.toString(), request.headers).toMutableMap()
+        validateHeaders(headers)
         repeat(limits.maxRedirects + 1) { redirectIndex ->
             check(!closed.get()) { "Network client is closed" }
             val connection = (current.openConnection() as? HttpURLConnection)
@@ -119,13 +125,10 @@ class BrowserHttpClient(
                 connection.requestMethod = currentMethod
                 connection.setRequestProperty("Accept-Encoding", "gzip")
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
-                headers.forEach { (name, value) ->
-                    validateHeader(name, value)
-                    connection.setRequestProperty(name, value)
-                }
+                headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
                 if (currentMethod == "POST") {
                     connection.doOutput = true
-                    connection.setRequestProperty("Content-Length", currentBody!!.size.toString())
+                    connection.setFixedLengthStreamingMode(currentBody!!.size)
                     connection.outputStream.use { it.write(currentBody) }
                 }
 
@@ -154,6 +157,9 @@ class BrowserHttpClient(
                         currentMethod = "GET"
                         currentBody = null
                     }
+                    // Re-run destination policy on every hop; never carry a stale policy result.
+                    headers = privacyPolicy.requestHeaders(next.toString(), headers).toMutableMap()
+                    validateHeaders(headers)
                     current = next
                     return@repeat
                 }
@@ -166,7 +172,7 @@ class BrowserHttpClient(
                     .mapKeys { it.key ?: "" }
                     .mapValues { it.value?.toList() ?: emptyList() }
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)
-                if (method == "GET" && request.useCache && status == 200) {
+                if (method == "GET" && request.useCache && status == 200 && isCacheSafe(responseHeaders)) {
                     store(cacheKey, response, cacheLifetimeMs(responseHeaders))
                 }
                 return response
@@ -195,6 +201,17 @@ class BrowserHttpClient(
             throw BrowserNetworkException("Cleartext HTTP is disabled")
         }
         return url
+    }
+
+    private fun validateHeaders(headers: Map<String, String>) {
+        headers.forEach { (name, value) ->
+            if (name.isBlank() || !HEADER_NAME.matches(name) ||
+                value.any { it == '\r' || it == '\n' } ||
+                name.lowercase(Locale.ROOT) in FORBIDDEN_REQUEST_HEADERS
+            ) {
+                throw BrowserNetworkException("Invalid or restricted request header")
+            }
+        }
     }
 
     private fun readBounded(input: java.io.InputStream): ByteArray {
@@ -240,6 +257,13 @@ class BrowserHttpClient(
         cacheBytes += response.body.size
     }
 
+    private fun isCacheSafe(headers: Map<String, List<String>>): Boolean {
+        val names = headers.keys.map { it.lowercase(Locale.ROOT) }.toSet()
+        if ("set-cookie" in names) return false
+        val vary = headers.entries.firstOrNull { it.key.equals("Vary", true) }?.value.orEmpty()
+        return vary.none { it.trim() == "*" } && vary.isEmpty()
+    }
+
     private fun cacheLifetimeMs(headers: Map<String, List<String>>): Long {
         val directives = headers.entries.firstOrNull { it.key.equals("Cache-Control", true) }
             ?.value?.joinToString(",")?.lowercase(Locale.ROOT) ?: return 0
@@ -247,13 +271,6 @@ class BrowserHttpClient(
         val seconds = Regex("(?:^|,)\\s*max-age=(\\d+)").find(directives)
             ?.groupValues?.getOrNull(1)?.toLongOrNull() ?: return 0
         return seconds.coerceAtMost(86_400).times(1000)
-    }
-
-    private fun validateHeader(name: String, value: String) {
-        if (name.isBlank() || name.any { it <= ' ' || it == ':' || it == '\\' } ||
-            value.any { it == '\r' || it == '\n' }) {
-            throw BrowserNetworkException("Invalid request header")
-        }
     }
 
     private fun sameOrigin(a: URL, b: URL): Boolean =
@@ -264,5 +281,9 @@ class BrowserHttpClient(
 
     companion object {
         private val REDIRECT_CODES = setOf(301, 302, 303, 307, 308)
+        private val HEADER_NAME = Regex("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
+        private val FORBIDDEN_REQUEST_HEADERS = setOf(
+            "host", "content-length", "transfer-encoding", "connection", "accept-encoding", "user-agent"
+        )
     }
 }

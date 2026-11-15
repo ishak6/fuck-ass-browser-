@@ -33,6 +33,19 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun userInfoInUrlIsRejected() {
+        val client = BrowserHttpClient()
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://user:pass@example.com"))
+            }
+            assertEquals("Invalid URL authority", error.message)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun privacyPolicyCanRejectRequest() {
         val policy = object : RequestPrivacyPolicy {
             override fun sanitizeUrl(url: String): String? = null
@@ -63,6 +76,54 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun callerCannotOverrideTransportFramingHeaders() {
+        val client = BrowserHttpClient()
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest(
+                    "https://example.com",
+                    headers = mapOf("Content-Length" to "0")
+                ))
+            }
+            assertEquals("Invalid or restricted request header", error.message)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun requestBodyIsBoundedBeforeConnecting() {
+        val client = BrowserHttpClient(NetworkLimits(maxRequestBytes = 2))
+        try {
+            val error = assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest(
+                    "https://example.com",
+                    method = "POST",
+                    body = byteArrayOf(1, 2, 3)
+                ))
+            }
+            assertEquals("Request body exceeds configured size limit", error.message)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun postRequiresBodyAndGetRejectsBody() {
+        val client = BrowserHttpClient()
+        try {
+            assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://example.com", method = "POST"))
+            }
+            assertThrows(BrowserNetworkException::class.java) {
+                client.execute(BrowserHttpRequest("https://example.com", body = byteArrayOf(1)))
+            }
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun closedClientRejectsNewRequests() {
         val client = BrowserHttpClient()
         client.close()
@@ -78,6 +139,9 @@ class BrowserHttpClientTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             NetworkLimits(maxResponseBytes = 0)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NetworkLimits(maxRequestBytes = -1)
         }
     }
 }

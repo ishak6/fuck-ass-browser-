@@ -178,6 +178,9 @@ class BrowserHttpClient(
 
                 val status = connection.responseCode
                 if (status in REDIRECT_CODES) {
+                    if (privacyPolicy.allowCookies(current.toString())) {
+                        cookieManager?.put(current.toURI(), responseHeaders(connection))
+                    }
                     val location = connection.getHeaderField("Location")
                         ?: throw BrowserNetworkException("Redirect response without Location")
                     if (redirectIndex >= limits.maxRedirects) {
@@ -213,11 +216,10 @@ class BrowserHttpClient(
                 val stream = if (status >= 400) connection.errorStream else connection.inputStream
                 val bytes = if (currentMethod == "HEAD" || stream == null) ByteArray(0) else
                     readBounded(if (connection.contentEncoding.equals("gzip", true)) GZIPInputStream(stream) else stream)
-                val responseHeaders = connection.headerFields
-                    .filterKeys { it != null }
-                    .mapKeys { it.key ?: "" }
-                    .mapValues { it.value?.toList() ?: emptyList() }
-                cookieManager?.put(current.toURI(), responseHeaders)
+                val responseHeaders = responseHeaders(connection)
+                if (privacyPolicy.allowCookies(current.toString())) {
+                    cookieManager?.put(current.toURI(), responseHeaders)
+                }
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)
                 if (cacheEligible && status == 200 && CachePolicy.isCacheSafe(responseHeaders)) {
                     store(cacheKey, response, CachePolicy.lifetimeMs(responseHeaders))
@@ -261,6 +263,12 @@ class BrowserHttpClient(
             }
         }
     }
+
+    private fun responseHeaders(connection: HttpURLConnection): Map<String, List<String>> =
+        connection.headerFields
+            .filterKeys { it != null }
+            .mapKeys { it.key ?: "" }
+            .mapValues { it.value?.toList() ?: emptyList() }
 
     private fun readBounded(input: java.io.InputStream): ByteArray {
         input.use { source ->

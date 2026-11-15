@@ -286,29 +286,43 @@ class BrowserHttpClientTest {
     @Test
     fun cookieJarStoresAndSendsCookiesOnlyToMatchingOrigin() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        cookies.cookieStore.add(URI("https://site.example/"), HttpCookie("session", "private"))
         val client = BrowserHttpClient(cookieManager = cookies)
-        val setCookie = FakeConnection(
-            URL("https://site.example/start"),
-            200,
-            mapOf("Set-Cookie" to "session=private; Path=/; Secure"),
-            "ok".toByteArray()
-        )
         val nextRequest = FakeConnection(URL("https://site.example/next"), 200, body = "ok".toByteArray())
-        client.connectionFactory = { url -> if (url.path == "/start") setCookie else nextRequest }
+        client.connectionFactory = { nextRequest }
         try {
-            client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
             client.execute(BrowserHttpRequest("https://site.example/next", useCache = false))
-            assertTrue(nextRequest.requestedHeaders["Cookie"].orEmpty().contains("session=private"))
+            val cookieHeader = nextRequest.requestedHeaders.entries
+                .firstOrNull { it.key.equals("Cookie", true) }?.value.orEmpty()
+            assertTrue(cookieHeader.contains("session=private"))
             client.clearCookies()
             val thirdRequest = FakeConnection(URL("https://site.example/after-clear"), 200)
             client.connectionFactory = { thirdRequest }
             client.execute(BrowserHttpRequest("https://site.example/after-clear", useCache = false))
-            assertFalse(thirdRequest.requestedHeaders.containsKey("Cookie"))
+            assertFalse(thirdRequest.requestedHeaders.keys.any { it.equals("Cookie", true) })
         } finally {
             client.close()
         }
     }
 
+    @Test
+    fun responseSetCookieIsStoredInTheProfileCookieJar() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        val client = BrowserHttpClient(cookieManager = cookies)
+        val response = FakeConnection(
+            URL("https://site.example/start"),
+            200,
+            mapOf("Set-Cookie" to "session=private; Path=/"),
+            "ok".toByteArray()
+        )
+        client.connectionFactory = { response }
+        try {
+            client.execute(BrowserHttpRequest("https://site.example/start", useCache = false))
+            assertTrue(cookies.cookieStore.cookies.any { it.name == "session" && it.value == "private" })
+        } finally {
+            client.close()
+        }
+    }
     @Test
     fun cancelActiveRequestsDisconnectsInFlightConnection() {
         val client = BrowserHttpClient()

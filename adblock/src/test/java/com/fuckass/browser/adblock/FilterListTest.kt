@@ -12,6 +12,15 @@ class FilterListTest {
         assertFalse(list.shouldBlock("https://notads.example/a", "image", "https://news.example"))
     }
 
+    @Test fun matchesCanonicalHostWithTrailingDotAndIdnAsciiLabel() {
+        val list = FilterList.parse("||xn--bcher-kva.example^")
+        assertTrue(list.shouldBlock(
+            "https://xn--bcher-kva.example./asset",
+            "image",
+            "https://publisher.example"
+        ))
+    }
+
     @Test fun exceptionOverridesMatchingBlock() {
         val list = FilterList.parse("||ads.example^\n@@||ads.example/allowed")
         assertFalse(list.shouldBlock("https://ads.example/allowed", "image", "https://news.example"))

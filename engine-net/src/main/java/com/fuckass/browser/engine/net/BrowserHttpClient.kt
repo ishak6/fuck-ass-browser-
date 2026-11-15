@@ -128,6 +128,12 @@ class BrowserHttpClient(
             throw BrowserNetworkException("Request blocked by content policy")
         }
 
+        var current = initial
+        var currentMethod = method
+        var currentBody = request.body
+        var headers = privacyPolicy.requestHeaders(current.toString(), request.headers).toMutableMap()
+        validateHeaders(headers)
+
         val cacheKey = "$method $initial"
         val hasCredentialHeader = headers.keys.any {
             it.equals("Authorization", true) || it.equals("Cookie", true)
@@ -140,12 +146,6 @@ class BrowserHttpClient(
         if (cacheEligible) {
             cached(cacheKey)?.let { return it.copy(fromCache = true) }
         }
-
-        var current = initial
-        var currentMethod = method
-        var currentBody = request.body
-        var headers = privacyPolicy.requestHeaders(current.toString(), request.headers).toMutableMap()
-        validateHeaders(headers)
         repeat(limits.maxRedirects + 1) { redirectIndex ->
             check(!closed.get()) { "Network client is closed" }
             val connection = connectionFactory(current)

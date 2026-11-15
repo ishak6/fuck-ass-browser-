@@ -286,7 +286,7 @@ internal object CachePolicy {
         val directives = headers.entries.firstOrNull { it.key.equals("Cache-Control", true) }
             ?.value?.joinToString(",")?.lowercase(Locale.ROOT) ?: return 0
         if ("no-store" in directives || "private" in directives || "no-cache" in directives) return 0
-        val seconds = Regex("(?:^|,)\\\\s*max-age=(\\\\d+)").find(directives)
+        val seconds = Regex("(?:^|,)\\s*max-age=(\\d+)").find(directives)
             ?.groupValues?.getOrNull(1)?.toLongOrNull() ?: return 0
         return seconds.coerceAtMost(86_400).times(1000)
     }

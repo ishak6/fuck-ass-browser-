@@ -72,3 +72,9 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 - M10: private-profile stores are bounded with replaced cache buffers zeroed; file-backed normal bookmarks/history persist atomically with tests.
 - M11: navigation generations prevent stale requests from updating a new session; normal history and private history use separate storage paths.
 - M12: final release/security/performance/device compatibility gate remains outstanding.
+
+
+## Current CI evidence (rolling pipeline)
+- Run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43762730518 passed on commit `1404cc457452`: debug APK build, unit tests, Android lint and APK artifact upload all succeeded.
+- Later commits add cookie redirect coverage, storage-limit adjustments and additional layout/cache tests; their Actions runs are still pending. The 1404 pass is not evidence for those later commits.
+- No physical-device or emulator verification has been performed.

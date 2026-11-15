@@ -6,10 +6,10 @@
 - M1: complete. Android multi-module skeleton, native Compose shell and CI are committed.
 - M1 verification: GitHub Actions run #3 succeeded; all 11 job steps passed (wrapper generation, debug APK, unit tests, lint, artifact upload).
 - Debug APK artifact: `custom-browser-debug-apk`, artifact ID `14177260929`, approximately 9.0 MB.
-- Current milestone: M2 — network engine hardening and integration coverage.
+- Current execution mode: pipelined M0-M11 implementation; see `MILESTONE_PIPELINE.md` and `PROGRESS.md`.
 - Latest M2 hardening commit `00905c062f304b828a43aa82b3e23623a9669a19`; GitHub Actions run #13 passed all 11 steps (debug APK, unit tests, lint, artifact upload).
-- Private-site mode requirements are documented and mapped across M4, M10 and M11; not implemented.
-- YouTube filter requirements are documented for M3; not implemented. Real-device YouTube verification is pending.
+- Private-site support is partially implemented: in-memory host matcher, ephemeral private profile, Compose private toggle, panic clear and FLAG_SECURE. Persistence, automatic routing and app lock remain pending.
+- M3 includes a bounded network-rule parser only. YouTube cosmetic/scriptlet filtering and real-device verification remain unimplemented.
 
 ## Finished
 - Step 0 repository inspection and planning documentation.
@@ -49,3 +49,14 @@
 
 ## Resume instructions
 Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only. Never mark a feature Done without passing tests.
+
+
+## Pipelined implementation status — 2026-11-16
+- M0-M1: architecture and CI scaffold verified.
+- M2-M3: network transport and bounded filter parser implemented as partial subsets; M2 real TLS/device integration and full filter-list compatibility are still pending.
+- M4-M5: privacy URL/referrer policies and HTTPS search-provider URL adapters implemented with unit tests. Provider API/search-result integration is pending.
+- M6-M8: bounded HTML tokenizer/tree builder/DOM, CSS subset parser/cascade, initial layout and Android Canvas backend implemented. Full standards conformance and device rendering are not claimed.
+- M9: bounded primitive JS interpreter implemented; it is not full ECMAScript and is not connected to page scripts/DOM.
+- M10: ephemeral private storage, playback state controller and reader-mode extraction implemented; persistent storage, Keystore and actual MediaCodec/PiP pipeline remain pending.
+- M11: Compose navigation shell integrates network, HTML/CSS subset and Canvas display list; private toggle uses FLAG_SECURE and memory cleanup. Full tab/settings/app-lock/permission UX and instrumented tests remain pending.
+- Latest consolidated CI is still required to validate all current commits; no milestone is marked complete based solely on source being committed.

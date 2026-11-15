@@ -53,10 +53,12 @@ import com.fuckass.browser.engine.render.LayoutViewport
 import com.fuckass.browser.privacy.BrowserPrivacyPolicy
 import com.fuckass.browser.search.BuiltInSearchProviders
 import com.fuckass.browser.storage.EphemeralPrivateProfile
+import com.fuckass.browser.storage.FileBrowserDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,6 +79,9 @@ private fun BrowserShell(activity: ComponentActivity) {
     val client = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy()) }
     val renderer = remember { CanvasRenderer() }
     val privateProfile = remember { EphemeralPrivateProfile() }
+    val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
+    val generationCounter = remember { AtomicInteger(0) }
+    val sessionLock = remember { Any() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var address by remember { mutableStateOf("") }
@@ -87,7 +92,6 @@ private fun BrowserShell(activity: ComponentActivity) {
     var error by remember { mutableStateOf<String?>(null) }
     var page by remember { mutableStateOf<LoadedPage?>(null) }
     var navigationJob by remember { mutableStateOf<Job?>(null) }
-    var navigationGeneration by remember { mutableStateOf(0) }
 
     SideEffect {
         if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -97,6 +101,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     DisposableEffect(client, privateProfile, activity) {
         onDispose {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            generationCounter.incrementAndGet()
             navigationJob?.cancel()
             client.cancelActiveRequests()
             client.close()
@@ -118,8 +123,8 @@ private fun BrowserShell(activity: ComponentActivity) {
                     ?: BuiltInSearchProviders.find("ddg")!!.searchUri(raw).toString()
             else -> "https://$raw"
         }
-        navigationGeneration += 1
-        val requestGeneration = navigationGeneration
+        val requestGeneration = generationCounter.incrementAndGet()
+        val privateModeAtStart = privateMode
         navigationJob?.cancel()
         client.cancelActiveRequests()
         address = target
@@ -150,16 +155,21 @@ private fun BrowserShell(activity: ComponentActivity) {
                         LayoutViewport(viewportWidth, with(density) { 800.dp.toPx() }),
                         styles
                     )
-                    if (privateMode) privateProfile.addHistory(target)
+                    synchronized(sessionLock) {
+                        if (generationCounter.get() == requestGeneration) {
+                            if (privateModeAtStart) privateProfile.addHistory(target)
+                            else runCatching { persistentStore.addHistory(target, System.currentTimeMillis()) }
+                        }
+                    }
                     LoadedPage(target, title, layout, response.statusCode)
                 }
-                if (requestGeneration == navigationGeneration) page = loaded
+                if (requestGeneration == generationCounter.get()) page = loaded
             } catch (failure: Exception) {
-                if (requestGeneration == navigationGeneration) {
+                if (requestGeneration == generationCounter.get()) {
                     error = failure.message ?: "Page could not be loaded"
                 }
             } finally {
-                if (requestGeneration == navigationGeneration) loading = false
+                if (requestGeneration == generationCounter.get()) loading = false
             }
         }
     }
@@ -201,7 +211,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                     }
                 }
                 OutlinedButton(onClick = {
-                    navigationGeneration += 1
+                    synchronized(sessionLock) { generationCounter.incrementAndGet() }
                     navigationJob?.cancel()
                     client.cancelActiveRequests()
                     client.clearCache()

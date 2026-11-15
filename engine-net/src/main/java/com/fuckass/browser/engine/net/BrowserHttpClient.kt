@@ -11,6 +11,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URI
 import java.util.Locale
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 
@@ -64,6 +66,9 @@ class BrowserHttpClient(
 ) : Closeable {
     private data class CacheEntry(val response: BrowserHttpResponse, val expiresAtMs: Long)
     private val closed = AtomicBoolean(false)
+    private val activeConnections = Collections.newSetFromMap(
+        ConcurrentHashMap<HttpURLConnection, Boolean>()
+    )
     private val cache = object : LinkedHashMap<String, CacheEntry>(16, 0.75f, true) {}
     private var cacheBytes = 0
 
@@ -76,8 +81,16 @@ class BrowserHttpClient(
     @Synchronized
     override fun close() {
         closed.set(true)
+        cancelActiveRequests()
         cache.clear()
         cacheBytes = 0
+    }
+
+    /** Disconnects in-flight transport operations, for navigation cancellation and privacy resets. */
+    fun cancelActiveRequests() {
+        activeConnections.toList().forEach { connection ->
+            runCatching { connection.disconnect() }
+        }
     }
 
     @Synchronized
@@ -122,7 +135,9 @@ class BrowserHttpClient(
         repeat(limits.maxRedirects + 1) { redirectIndex ->
             check(!closed.get()) { "Network client is closed" }
             val connection = connectionFactory(current)
+            activeConnections.add(connection)
             try {
+                if (closed.get()) throw BrowserNetworkException("Network client is closed")
                 connection.instanceFollowRedirects = false
                 connection.connectTimeout = limits.connectTimeoutMs
                 connection.readTimeout = limits.readTimeoutMs
@@ -188,6 +203,7 @@ class BrowserHttpClient(
             } catch (e: Exception) {
                 throw BrowserNetworkException("Network request failed", e)
             } finally {
+                activeConnections.remove(connection)
                 connection.disconnect()
             }
         }

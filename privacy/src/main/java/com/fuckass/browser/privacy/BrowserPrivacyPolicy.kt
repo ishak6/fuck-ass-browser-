@@ -54,7 +54,7 @@ class BrowserPrivacyPolicy(
             val referer = original.entries.firstOrNull { it.key.equals("Referer", true) }?.value
             if (referer != null && settings.referrerMode != ReferrerMode.NONE) {
                 val source = runCatching { URI(referer) }.getOrNull()
-                if (source != null && source.host != null &&
+                if (source != null && source.host != null && source.rawUserInfo == null &&
                     source.scheme?.lowercase(Locale.ROOT) in setOf("http", "https")
                 ) {
                     val sameOrigin = source.scheme.equals(destination.scheme, true) &&
@@ -80,8 +80,8 @@ class BrowserPrivacyPolicy(
         val port = effectivePort(uri)
         val defaultPort = (uri.scheme.equals("https", true) && port == 443) ||
             (uri.scheme.equals("http", true) && port == 80)
-        return "${uri.scheme}://${uri.rawAuthority.substringBeforeLast(':').takeIf { uri.host.contains(':') } ?: uri.host}" +
-            if (defaultPort) "/" else ":$port/"
+        val authority = if (defaultPort) uri.host else "${uri.host}:$port"
+        return "${uri.scheme}://$authority/"
     }
 
     private fun effectivePort(uri: URI): Int = when {

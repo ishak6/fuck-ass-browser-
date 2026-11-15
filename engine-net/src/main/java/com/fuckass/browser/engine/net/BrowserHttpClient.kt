@@ -158,7 +158,9 @@ class BrowserHttpClient(
                             !it.equals("Authorization", true) && !it.equals("Cookie", true)
                         }.toMutableMap()
                     }
-                    if (status == 303 || ((status == 301 || status == 302) && currentMethod == "POST")) {
+                    if ((status == 303 && currentMethod != "HEAD") ||
+                        ((status == 301 || status == 302) && currentMethod == "POST")
+                    ) {
                         currentMethod = "GET"
                         currentBody = null
                     }

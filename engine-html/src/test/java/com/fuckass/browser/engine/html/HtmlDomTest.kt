@@ -50,6 +50,22 @@ class HtmlDomTest {
         assertNull(span.parent)
     }
 
+    @Test fun rejectsSelfAndAncestorCyclesDuringDomMutation() {
+        val parent = HtmlElement("div")
+        val child = HtmlElement("span")
+        parent.appendChild(child)
+        try {
+            parent.appendChild(parent)
+            throw AssertionError("Expected self-cycle rejection")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            child.appendChild(parent)
+            throw AssertionError("Expected ancestor-cycle rejection")
+        } catch (_: IllegalArgumentException) { }
+        assertEquals(parent, child.parent)
+        assertEquals(child, parent.children.single())
+    }
+
     @Test fun nestingAndNodeLimitsAreEnforced() {
         try {
             HtmlTreeBuilder(HtmlTreeLimits(maxDepth = 1)).build(

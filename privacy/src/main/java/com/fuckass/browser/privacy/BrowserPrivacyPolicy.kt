@@ -45,6 +45,8 @@ class BrowserPrivacyPolicy(
         return if (kept.isEmpty()) base else base + "?" + kept.joinToString("&")
     }
 
+    override fun allowCookies(url: String): Boolean = !settings.stripCookieHeaders
+
     override fun requestHeaders(url: String, original: Map<String, String>): Map<String, String> {
         val destination = runCatching { URI(url) }.getOrNull() ?: return emptyMap()
         return original.filter { (name, _) ->

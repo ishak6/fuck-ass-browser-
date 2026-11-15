@@ -172,8 +172,8 @@ class BrowserHttpClient(
                     .mapKeys { it.key ?: "" }
                     .mapValues { it.value?.toList() ?: emptyList() }
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)
-                if (method == "GET" && request.useCache && status == 200 && isCacheSafe(responseHeaders)) {
-                    store(cacheKey, response, cacheLifetimeMs(responseHeaders))
+                if (method == "GET" && request.useCache && status == 200 && CachePolicy.isCacheSafe(responseHeaders)) {
+                    store(cacheKey, response, CachePolicy.lifetimeMs(responseHeaders))
                 }
                 return response
             } catch (e: BrowserNetworkException) {
@@ -257,22 +257,6 @@ class BrowserHttpClient(
         cacheBytes += response.body.size
     }
 
-    private fun isCacheSafe(headers: Map<String, List<String>>): Boolean {
-        val names = headers.keys.map { it.lowercase(Locale.ROOT) }.toSet()
-        if ("set-cookie" in names) return false
-        val vary = headers.entries.firstOrNull { it.key.equals("Vary", true) }?.value.orEmpty()
-        return vary.none { it.trim() == "*" } && vary.isEmpty()
-    }
-
-    private fun cacheLifetimeMs(headers: Map<String, List<String>>): Long {
-        val directives = headers.entries.firstOrNull { it.key.equals("Cache-Control", true) }
-            ?.value?.joinToString(",")?.lowercase(Locale.ROOT) ?: return 0
-        if ("no-store" in directives || "private" in directives || "no-cache" in directives) return 0
-        val seconds = Regex("(?:^|,)\\s*max-age=(\\d+)").find(directives)
-            ?.groupValues?.getOrNull(1)?.toLongOrNull() ?: return 0
-        return seconds.coerceAtMost(86_400).times(1000)
-    }
-
     private fun sameOrigin(a: URL, b: URL): Boolean =
         a.protocol.equals(b.protocol, true) && a.host.equals(b.host, true) && effectivePort(a) == effectivePort(b)
 
@@ -285,5 +269,25 @@ class BrowserHttpClient(
         private val FORBIDDEN_REQUEST_HEADERS = setOf(
             "host", "content-length", "transfer-encoding", "connection", "accept-encoding", "user-agent"
         )
+    }
+}
+
+
+/** Conservative HTTP response-cache rules shared with deterministic unit tests. */
+internal object CachePolicy {
+    fun isCacheSafe(headers: Map<String, List<String>>): Boolean {
+        val names = headers.keys.map { it.lowercase(Locale.ROOT) }.toSet()
+        if ("set-cookie" in names) return false
+        val vary = headers.entries.firstOrNull { it.key.equals("Vary", true) }?.value.orEmpty()
+        return vary.none { it.trim() == "*" } && vary.isEmpty()
+    }
+
+    fun lifetimeMs(headers: Map<String, List<String>>): Long {
+        val directives = headers.entries.firstOrNull { it.key.equals("Cache-Control", true) }
+            ?.value?.joinToString(",")?.lowercase(Locale.ROOT) ?: return 0
+        if ("no-store" in directives || "private" in directives || "no-cache" in directives) return 0
+        val seconds = Regex("(?:^|,)\\\\s*max-age=(\\\\d+)").find(directives)
+            ?.groupValues?.getOrNull(1)?.toLongOrNull() ?: return 0
+        return seconds.coerceAtMost(86_400).times(1000)
     }
 }

@@ -112,14 +112,14 @@ class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
             val current = source[index]
             if (quote != null) {
                 output.append(current)
-                if (current == '\\\\' && index + 1 < source.length) {
+                if (current.code == 92 && index + 1 < source.length) {
                     output.append(source[index + 1])
                     index += 2
                     continue
                 }
                 if (current == quote) quote = null
                 index++
-            } else if (current == '"' || current == '\\'') {
+            } else if (current == '"' || current.code == 39) {
                 quote = current
                 output.append(current)
                 index++
@@ -138,7 +138,6 @@ class CssParser(private val limits: CssParserLimits = CssParserLimits()) {
         }
         return output.toString()
     }
-
     private fun parseSelector(source: String): CssSelector? {
         if (source.isBlank() || source.length > limits.maxSelectorLength ||
             source.any { it == '>' || it == '+' || it == '~' || it == ':' || it == '\\' }

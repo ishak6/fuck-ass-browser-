@@ -87,6 +87,8 @@ class EphemeralPrivateProfile(
         downloads += filename
     }
 
+    @Synchronized fun historyEntries(): List<String> = history.toList()
+
     @Synchronized fun snapshot(): PrivateProfileSnapshot = PrivateProfileSnapshot(
         cookies.size, cacheEntries.size, history.size, formData.size, downloads.size, closed
     )

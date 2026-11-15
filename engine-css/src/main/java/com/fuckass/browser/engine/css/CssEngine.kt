@@ -275,13 +275,20 @@ class ComputedStyleResolver {
         }
 
         val result = winners.mapValues { it.value.value }.toMutableMap()
-        if ("display" !in result) result["display"] = if (element.tagName in BLOCK_ELEMENTS) "block" else "inline"
+        if ("display" !in result) {
+            result["display"] = when {
+                element.tagName in HIDDEN_ELEMENTS -> "none"
+                element.tagName in BLOCK_ELEMENTS -> "block"
+                else -> "inline"
+            }
+        }
         return result
     }
 
     companion object {
+        private val HIDDEN_ELEMENTS = setOf("head", "script", "style", "title", "meta", "link", "base", "noscript")
         private val BLOCK_ELEMENTS = setOf(
-            "address", "article", "aside", "blockquote", "body", "div", "dl", "fieldset",
+            "html", "address", "article", "aside", "blockquote", "body", "div", "dl", "fieldset",
             "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
             "main", "nav", "ol", "p", "pre", "section", "table", "ul", "li"
         )

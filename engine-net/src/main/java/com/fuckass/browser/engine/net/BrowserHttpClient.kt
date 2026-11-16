@@ -99,6 +99,18 @@ class BrowserHttpClient(
         cookieManager?.cookieStore?.removeAll()
     }
 
+    /** Removes cookies scoped to one HTTPS origin; returns the number removed. */
+    fun clearCookiesFor(url: String): Int {
+        val uri = runCatching { URI(url) }.getOrNull() ?: return 0
+        if (!uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrBlank() ||
+            uri.rawUserInfo != null
+        ) return 0
+        val store = cookieManager?.cookieStore ?: return 0
+        val matching = store.get(uri).toList()
+        matching.forEach { store.remove(uri, it) }
+        return matching.size
+    }
+
     @Synchronized
     fun clearCache() {
         cache.clear()

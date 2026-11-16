@@ -267,6 +267,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                     loading = false
                     error = null
                     val enteringPrivate = !privateMode
+                    if (enteringPrivate) {
+                        activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    }
                     privateMode = enteringPrivate
                     historyItems = if (enteringPrivate) emptyList() else persistentStore.history().map { it.first }
                     privateProfile.clear()

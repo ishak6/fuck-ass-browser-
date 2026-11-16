@@ -4,6 +4,7 @@ import android.view.WindowManager
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.assertExists
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -19,6 +20,13 @@ class MainActivityPrivacyTest {
     private fun isWindowSecure(): Boolean =
         composeRule.activity.window.attributes.flags and
             WindowManager.LayoutParams.FLAG_SECURE != 0
+
+    @Test
+    fun sitePermissionPanelExplainsHttpsRequirementWithoutGrantingRuntimeAccess() {
+        composeRule.onNodeWithText("Site permissions").performClick()
+        composeRule.onNodeWithText("Site permission controls").assertExists()
+        composeRule.onNodeWithText("Open an HTTPS site to edit its permissions.").assertExists()
+    }
 
     @Test
     fun privateModeEnablesSecureWindowAndExitClearsIt() {

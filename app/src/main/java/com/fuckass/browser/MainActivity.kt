@@ -302,9 +302,6 @@ private fun BrowserShell(activity: ComponentActivity) {
                 OutlinedButton(onClick = { permissionPanel = !permissionPanel }) {
                     Text(if (permissionPanel) "Hide permissions" else "Site permissions")
                 }
-                OutlinedButton(onClick = { dataControlsPanel = !dataControlsPanel }) {
-                    Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
-                }
                 Box {
                     OutlinedButton(onClick = { historyMenu = true }) { Text("History") }
                     DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
@@ -387,6 +384,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                     onClick = { if (address.isNotBlank()) navigate(address, recordHistory = false) },
                     enabled = address.isNotBlank() && !loading
                 ) { Text("Refresh") }
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                OutlinedButton(onClick = { dataControlsPanel = true }) {
+                    Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
+                }
             }
             if (permissionPanel) {
                 val permissionUrl = page?.url ?: address

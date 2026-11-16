@@ -64,7 +64,8 @@ class BrowserHttpClient(
     private val limits: NetworkLimits = NetworkLimits(),
     private val privacyPolicy: RequestPrivacyPolicy = NoOpRequestPrivacyPolicy,
     private val filterPolicy: NetworkFilterPolicy = AllowAllNetworkFilterPolicy,
-    private val cookieManager: CookieManager? = null
+    private val cookieManager: CookieManager? = null,
+    private val cookieAccessPolicy: CookieAccessPolicy = CookieAccessPolicy()
 ) : Closeable {
     private data class CacheEntry(val response: BrowserHttpResponse, val expiresAtMs: Long)
     private val closed = AtomicBoolean(false)
@@ -172,7 +173,7 @@ class BrowserHttpClient(
                 connection.setRequestProperty("Accept-Encoding", "gzip")
                 connection.setRequestProperty("User-Agent", "CustomBrowser/0.1 (Android)")
                 headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-                if (privacyPolicy.allowCookies(current.toString())) {
+                if (privacyPolicy.allowCookies(current.toString()) && cookieAccessPolicy.allows(current.toString(), request.topLevelUrl)) {
                     val scopedCookies = cookieManager?.cookieStore?.get(current.toURI())
                         .orEmpty().filterNot { it.hasExpired() }
                     if (scopedCookies.isNotEmpty()) {

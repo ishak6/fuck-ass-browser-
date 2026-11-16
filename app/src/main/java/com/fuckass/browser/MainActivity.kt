@@ -407,7 +407,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                                                             .onFailure { failure -> error = failure.message ?: "Could not save site permission" }
                                                     },
                                                     enabled = !privateMode
-                                                ) { Text(decision.name) }
+                                                ) { Text(when (decision) {
+                                                        SitePermissionDecision.ASK -> "Ask"
+                                                        SitePermissionDecision.ALLOW -> "Allow"
+                                                        SitePermissionDecision.BLOCK -> "Block"
+                                                    }) }
                                             }
                                         }
                                     }

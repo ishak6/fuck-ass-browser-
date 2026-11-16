@@ -195,3 +195,12 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 - CodeQL run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763967417 succeeded for that commit. A successful CodeQL workflow is not a claim that the app has no vulnerabilities; findings still require triage.
 - Follow-up commit `49b2b86e160d762fc81713d21fa4aff6527750ac` updates the Compose instrumentation test to wait for the asynchronous window-flag transition before asserting it. Android CI and CodeQL reruns are in progress; no result is claimed yet.
 - Emulator instrumentation is not physical-device validation. No physical Android device has been tested.
+
+
+## Extended milestone execution — 2026-11-16
+- M12 emulator regression: the API 35 run `43813297437` failed because the Compose instrumentation test timed out waiting for the `FLAG_SECURE` transition. Debug/release builds, unit tests and lint passed; API 26 and APK upload were skipped. The first follow-up test adjustment also failed, so the failure remains open.
+- Test correction attempt: changed the private-mode instrumentation assertions to run after Compose idleness rather than polling the window flag. This attempt is awaiting a fresh emulator CI result and is not yet verified.
+- M13 started: added `AndroidKeyStoreCipher`, an Android Keystore-backed non-exportable AES-256-GCM key with authenticated associated data, random 96-bit IV envelope, 1 MiB plaintext/4 KiB AAD bounds and key deletion. Added emulator instrumentation coverage for round-trip, fresh IV, tamper/AAD rejection, malformed payload and key deletion.
+- M13 status: Partial / verification pending. The primitive is not yet wired into bookmark/history persistence or a password manager; no encrypted-at-rest claim is made for existing browser data.
+- Extended roadmap M13–M49 is now recorded. M12 is the original core validation gate; M49 is the extended whole-project release gate.
+- No physical Android device has been tested. Emulator CI results must be checked before claiming the new tests pass.

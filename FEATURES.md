@@ -82,3 +82,9 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 - M4/M11: `FilePrivateSiteRulesStore` persists host rules and the app automatically selects the private profile for matching sites; app-level routing unit tests have been added and are pending CI.
 
 - M12 infrastructure: added an Android emulator instrumentation test for private-mode FLAG_SECURE and a CodeQL v4 Java/Kotlin workflow. First emulator and CodeQL results are pending; no success is claimed yet.
+
+
+## Extended feature implementation
+| Feature | Module | Status | Test that proves it |
+|---|---|---|---|
+| Android Keystore AES-256-GCM encryption primitive | :storage | Partial | Android instrumentation: round-trip, random IV, AAD/tamper rejection, malformed envelope and key deletion; CI verification pending; existing bookmark/history file is not yet encrypted |

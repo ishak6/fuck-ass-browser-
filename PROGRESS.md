@@ -45,7 +45,7 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Cookie/third-party cookie control | :privacy | Not started | Cross-origin cookie tests |
 | Per-site isolated storage | :privacy/:storage | Not started | Origin isolation tests |
 | WebRTC leak control | :privacy | Not started | On-device ICE leak tests |
-| Private browsing | :privacy/:storage | Not started | Ephemeral persistence tests |
+| Private browsing | :privacy/:storage | Partial | Separate in-memory private cookies/history/cache and cleanup paths exist; full tab/storage audit pending | Private-profile isolation and cleanup tests |
 | Auto-clear history/cookies | :privacy/:storage | Not started | Deletion trigger tests |
 | Cache control | :privacy/:engine-net | Not started | Clear/retain tests |
 | Permission manager/dashboard | :privacy/:app | Not started | Permission state/UI tests |
@@ -62,10 +62,10 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Permitted downloads | :media/:engine-net | Not started | User-initiated download integrity test |
 | Supported DRM playback | :media | Not started | Authorized provider/device test; Widevine not guaranteed |
 | Tabs/tab manager/groups | :app/:storage | Not started | State and persistence tests |
-| Bookmarks/history/search history | :storage | Not started | CRUD/persistence/privacy tests |
+| Bookmarks/history/search history | :storage | Partial | Normal bookmarks/history persist; private history is memory-only; search-history UX and full privacy tests pending | CRUD/persistence/privacy tests |
 | Download manager | :app/:engine-net | Not started | Download state/file tests |
 | QR scanner | :tools/:app | Not started | Camera permission/scan tests |
-| Reader mode | :tools/:engine-html | Not started | Article extraction fixtures |
+| Reader mode | :tools/:engine-html | Partial | Article extraction helper exists; user-facing reader workflow and fixtures pending | Article extraction fixtures |
 | Translation | :tools | Not started | Provider adapter tests; key/network disclosure |
 | Desktop mode | :privacy/:engine-net | Not started | UA/viewport tests |
 | Share page | :app | Not started | Android share intent test |
@@ -74,11 +74,11 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Zoom | :engine-render/:app | Not started | Layout scale tests |
 | Offline pages | :tools/:storage | Not started | Save/reopen fixture tests |
 | Encrypted password manager | :storage | Not started | Keystore encrypt/decrypt tests |
-| Compose UI | :app | Not started | Compose UI tests |
+| Compose UI | :app | Partial | Native Compose browser shell exists; broad UI coverage and accessibility tests pending | Compose UI tests |
 | Dark/light/system theme | :app | Not started | Theme UI tests |
 | Homepage/start page | :app/:storage | Not started | Preference persistence tests |
 | Toolbar customization/position | :app | Not started | Compose state/UI tests |
-| Search engine selection | :search/:app | Not started | URL template tests |
+| Search engine selection | :search/:app | Partial | Provider dropdown and HTTPS URL adapters exist; settings persistence and integration tests pending | URL template tests |
 | Font size/gestures/shortcuts | :app/:engine-render | Not started | UI and rendering tests |
 | Network request inspector | :diagnostics/:engine-net | Not started | Redacted request event tests |
 | JS permission control | :privacy/:engine-js | Not started | Script policy integration |
@@ -112,17 +112,17 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Meta-search warning/opt-in | :search/:app | Partial | Default-off setting model; UI disclosure pending | Default-off preference/UI test |
 | Bang shortcuts | :search | Partial | !g, !ddg, !b, !w parser fixtures | !g, !ddg, !w parsing tests |
 | Search timeout/rate-limit/offline | :search | Not started | Deterministic failure fixtures |
-| GitHub Actions build | CI | Not started | Successful workflow run |
-| Debug APK artifact | CI | Not started | APK artifact download/inspection |
-| Release APK | CI | Not started | Signed APK verification |
-| Installation testing | CI/:app | Not started | Emulator install and launch |
+| GitHub Actions build | CI | Partial | Debug/release build, unit tests and lint have passed on earlier commits; latest emulator instrumentation run is failing and rerunning | Successful workflow run |
+| Debug APK artifact | CI | Partial | Earlier debug APK artifacts uploaded; latest run upload is gated on emulator tests | APK artifact download/inspection |
+| Release APK | CI | Partial | assembleRelease succeeds; release signing and artifact verification remain pending | Signed APK verification |
+| Installation testing | CI/:app | Partial | API 35 emulator launched app and executed privacy test; test failed; API 26 run was skipped | Emulator install and launch |
 
 | Private-site rules (user-defined always-private list) | :privacy/:storage/:app | Partial | Exact/subdomain in-memory matcher tests; persisted UI routing pending | Rule precedence and auto-private tab routing tests |
 | Isolated private tab profile | :privacy/:storage | Not started | Storage inspection proves no history, cookies, cache, form data or download-list persistence |
 | Private-tab close cleanup | :privacy/:storage | Not started | Close-tab storage inspection test |
-| Panic button (close all private tabs + wipe) | :privacy/:storage/:app | Not started | Panic action test verifies all ephemeral stores are empty |
+| Panic button (close all private tabs + wipe) | :privacy/:storage/:app | Partial | Private-session cancellation and memory cleanup exist; multi-tab wipe verification pending | Panic action test verifies all ephemeral stores are empty |
 | Private-tab PIN/biometric lock | :privacy/:app | Not started | Lock-state, biometric cancellation and lifecycle tests |
-| FLAG_SECURE for private surfaces | :app | Not started | Instrumented window flag and screenshot/recents behavior test |
+| FLAG_SECURE for private surfaces | :app | Partial | Window flag is wired to private-mode state; instrumentation assertion is being stabilized; screenshot/recents verification pending | Instrumented window flag and screenshot/recents behavior test |
 | Neutral app icon/name option | :app | Not started | Launcher alias enable/disable instrumentation test; platform launcher caveats documented |
 | Private notification redaction | :app/:privacy | Not started | Notification content inspection test |
 | Private popup/pop-under and forced-redirect blocking | :adblock/:privacy/:engine-net | Not started | Navigation decision fixtures and redirect integration tests |
@@ -189,3 +189,9 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 - Android CI now provisions a headless API 35 Google APIs emulator and runs `connectedDebugAndroidTest` after build/unit/lint.
 - Added CodeQL v4 workflow for Java/Kotlin with manual Gradle build mode and weekly scheduled scans.
 - These new emulator and CodeQL jobs are pending their first completed run; no emulator or CodeQL success is claimed yet.
+
+## M12 latest verification — 2026-11-16
+- Commit `da32aca2fdc59ef182f61017935015681a08f2ab`: debug/release APK build, unit tests and Android lint passed; API 35 emulator instrumentation failed in `MainActivityPrivacyTest` while asserting the private-mode `FLAG_SECURE` transition. API 26 and APK upload were skipped because the API 35 test failed.
+- CodeQL run https://github.com/ishak6/fuck-ass-browser-/actions/runs/43763967417 succeeded for that commit. A successful CodeQL workflow is not a claim that the app has no vulnerabilities; findings still require triage.
+- Follow-up commit `49b2b86e160d762fc81713d21fa4aff6527750ac` updates the Compose instrumentation test to wait for the asynchronous window-flag transition before asserting it. Android CI and CodeQL reruns are in progress; no result is claimed yet.
+- Emulator instrumentation is not physical-device validation. No physical Android device has been tested.

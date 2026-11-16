@@ -241,6 +241,7 @@ private fun BrowserShell(activity: ComponentActivity) {
         address = cleanQuery
         nativeSearchQuery = cleanQuery
         nativeResults = null
+        videoResults = null
         page = null
         loading = true
         error = null
@@ -384,6 +385,7 @@ private fun BrowserShell(activity: ComponentActivity) {
             if (selectedProvider == "wikipedia") {
                 Text("Native search sends your query to Wikipedia. Other providers open their result pages.", style = MaterialTheme.typography.bodySmall)
             }
+            Text("Videos searches Internet Archive's public catalogue; item rights vary. Playback is limited to publicly listed MP4 files.", style = MaterialTheme.typography.bodySmall)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

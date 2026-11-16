@@ -33,7 +33,7 @@ class OriginStorageManagerTest {
         val storage = OriginStorageManager(maxBytesPerOrigin = 12, maxBytesTotal = 24)
         storage.setItem("https://example.test/", OriginStorageType.LOCAL, "k", "1234")
         assertThrows(StorageQuotaExceededException::class.java) {
-            storage.setItem("https://example.test/", OriginStorageType.LOCAL, "k", "0123456789")
+            storage.setItem("https://example.test/", OriginStorageType.LOCAL, "k", "012345678901")
         }
         assertEquals("1234", storage.getItem("https://example.test/", OriginStorageType.LOCAL, "k"))
     }

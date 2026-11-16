@@ -443,7 +443,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                     Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
                         Text("Privacy & data controls", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Cookies and cache are stored separately for normal and private sessions.",
+                            "The controls below manage the normal session. Private-session cookies and cache are cleared when private mode exits.",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text("Cookie policy: ${cookieMode.name.replace('_', ' ')}", style = MaterialTheme.typography.labelLarge)
@@ -508,7 +508,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                                 enabled = !privateMode
                             ) { Text("Clear history") }
                         }
-                        Text("Private-session data is cleared separately when private mode exits or Panic clear is used.", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Cookie-backed requests bypass the URL-only HTTP cache to avoid cross-session data leakage. Clear cache empties any in-memory entries; it does not enable persistent caching.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text("Private-session data is cleared when private mode exits or Panic clear is used.", style = MaterialTheme.typography.bodySmall)
                         if (dataControlsRevision > 0) Text("Data controls updated.", style = MaterialTheme.typography.bodySmall)
                     }
                 }

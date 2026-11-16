@@ -13,6 +13,6 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
+    implementation(project(":engine-net"))
     testImplementation("junit:junit:4.13.2")
-
 }

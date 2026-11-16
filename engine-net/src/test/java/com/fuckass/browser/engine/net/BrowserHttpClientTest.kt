@@ -20,6 +20,25 @@ import org.junit.Test
 
 class BrowserHttpClientTest {
     @Test
+    fun clearCookiesForRemovesOnlyTheRequestedHttpsOriginCookies() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        val first = URI("https://first.example/")
+        val second = URI("https://second.example/")
+        cookies.cookieStore.add(first, HttpCookie("sid", "one"))
+        cookies.cookieStore.add(second, HttpCookie("sid", "two"))
+        val client = BrowserHttpClient(cookieManager = cookies)
+        try {
+            assertEquals(1, client.clearCookiesFor("https://first.example/path"))
+            assertTrue(cookies.cookieStore.get(first).isEmpty())
+            assertEquals("two", cookies.cookieStore.get(second).single().value)
+            assertEquals(0, client.clearCookiesFor("http://second.example/"))
+            assertEquals(0, client.clearCookiesFor("https://user@second.example/"))
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun cleartextHttpIsRejectedBeforeConnecting() {
         val client = BrowserHttpClient()
         try {

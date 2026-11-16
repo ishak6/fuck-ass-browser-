@@ -16,21 +16,21 @@ class MainActivityPrivacyTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
+    private fun isWindowSecure(): Boolean =
+        composeRule.activity.window.attributes.flags and
+            WindowManager.LayoutParams.FLAG_SECURE != 0
+
     @Test
     fun privateModeEnablesSecureWindowAndExitClearsIt() {
+        composeRule.waitUntil(timeoutMillis = 5_000) { !isWindowSecure() }
+        assertFalse("Normal mode must not set FLAG_SECURE", isWindowSecure())
+
         composeRule.onNodeWithText("Private: OFF").performClick()
-        composeRule.waitForIdle()
-        composeRule.activityRule.scenario.onActivity { activity ->
-            assertTrue(
-                activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
-            )
-        }
+        composeRule.waitUntil(timeoutMillis = 5_000) { isWindowSecure() }
+        assertTrue("Private mode must set FLAG_SECURE", isWindowSecure())
+
         composeRule.onNodeWithText("Private: ON").performClick()
-        composeRule.waitForIdle()
-        composeRule.activityRule.scenario.onActivity { activity ->
-            assertFalse(
-                activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
-            )
-        }
+        composeRule.waitUntil(timeoutMillis = 5_000) { !isWindowSecure() }
+        assertFalse("Leaving private mode must clear FLAG_SECURE", isWindowSecure())
     }
 }

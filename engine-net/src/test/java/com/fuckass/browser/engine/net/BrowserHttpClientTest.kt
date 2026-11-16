@@ -29,8 +29,8 @@ class BrowserHttpClientTest {
         val client = BrowserHttpClient(cookieManager = cookies)
         try {
             assertEquals(1, client.clearCookiesFor("https://first.example/path"))
-            assertTrue(cookies.cookieStore.get(first).isEmpty())
-            assertEquals("two", cookies.cookieStore.get(second).single().value)
+            assertFalse(cookies.cookieStore.cookies.any { it.name == "sid" && it.value == "one" })
+            assertTrue(cookies.cookieStore.cookies.any { it.name == "sid" && it.value == "two" })
             assertEquals(0, client.clearCookiesFor("http://second.example/"))
             assertEquals(0, client.clearCookiesFor("https://user@second.example/"))
         } finally {

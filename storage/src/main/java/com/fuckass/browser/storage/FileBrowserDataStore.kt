@@ -63,6 +63,14 @@ class FileBrowserDataStore(private val directory: File) : BrowserDataStore {
         return savedHistory.asReversed().take(limit)
     }
 
+    @Synchronized
+    override fun clearHistory() {
+        if (savedHistory.isNotEmpty()) {
+            savedHistory.clear()
+            persist()
+        }
+    }
+
     private fun load() {
         if (!dataFile.exists()) return
         if (dataFile.length() !in HEADER_BYTES.toLong()..MAX_FILE_BYTES.toLong()) {

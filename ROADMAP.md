@@ -16,7 +16,7 @@ The project is executed in dependency order. Each milestone must build, test, pa
 | M9 | :engine-js first-party interpreter subset and DOM bindings | Published ECMAScript subset coverage; execution budget/isolation tests; no broad compatibility claim |
 | M10 | :media, :storage, :tools, ephemeral private profile plus durable normal bookmarks/history | Device tests for supported codecs/PiP; Keystore tests; CRUD/backup/offline/tool tests |
 | M11 | Browser UX, navigation lifecycle, tabs, settings, diagnostics, private-site UX (rules, panic, lock, FLAG_SECURE, redaction), advanced and security controls | Compose/instrumented tests, redaction, clear-data and permission tests; no telemetry |
-| M12 | Real-site compatibility, performance/security audit, release and install | Published pass/fail matrix; green CI; signed release artifact; emulator install/launch and device checklist |
+| M12 | Original core-engine validation gate | Core M0–M11 build/test/lint, integration/security/performance review and baseline APK verification; does not release the extended M13–M49 feature set |
 
 ## M12 final release gate\n- Full clean build/test/lint and integration suite on the final commit.\n- Security review: transport/TLS, redirects, storage boundaries, private-session cleanup, input/resource limits, permission handling and dependency audit.\n- Performance review: tokenizer/parser/layout budgets, large documents, memory use, navigation cancellation and scroll/render timing.\n- Release artifact/signing verification and install/launch test on emulator/device.\n- Publish a real-site pass/fail matrix with unsupported features and dated manual test evidence.\n\n## Per-milestone gate
 - Implement only the current milestone.

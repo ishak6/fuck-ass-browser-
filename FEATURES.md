@@ -88,3 +88,4 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 | Feature | Module | Status | Test that proves it |
 |---|---|---|---|
 | Android Keystore AES-256-GCM encryption primitive | :storage | Partial | Android instrumentation: round-trip, random IV, AAD/tamper rejection, malformed envelope and key deletion; CI verification pending; existing bookmark/history file is not yet encrypted |
+| Per-origin site permission policy | :privacy | Partial | Unit tests for default ASK, fail-closed URL parsing, IDN/origin normalization, per-permission decisions, bounded store and clearing; persistence/UI/runtime grants pending |

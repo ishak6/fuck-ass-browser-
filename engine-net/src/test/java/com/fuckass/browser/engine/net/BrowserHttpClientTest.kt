@@ -378,6 +378,29 @@ class BrowserHttpClientTest {
     }
 
     @Test
+    fun blockAllCookieModePreventsSendingAndStoringCookies() {
+        val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        val policy = CookieAccessPolicy(CookieMode.BLOCK_ALL)
+        val client = BrowserHttpClient(cookieManager = cookies, cookieAccessPolicy = policy)
+        cookies.cookieStore.add(URI("https://www.example.com/"), HttpCookie("existing", "secret"))
+        val response = FakeConnection(
+            URL("https://www.example.com/start"),
+            200,
+            mapOf("Set-Cookie" to "new=secret; Path=/"),
+            "ok".toByteArray()
+        )
+        client.connectionFactory = { response }
+        try {
+            client.execute(BrowserHttpRequest("https://www.example.com/start", useCache = false))
+            assertFalse(response.requestedHeaders.keys.any { it.equals("Cookie", true) })
+            assertFalse(cookies.cookieStore.cookies.any { it.name == "new" })
+            assertTrue(cookies.cookieStore.cookies.any { it.name == "existing" })
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
     fun responseSetCookieIsStoredInTheProfileCookieJar() {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         val client = BrowserHttpClient(cookieManager = cookies)

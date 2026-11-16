@@ -28,6 +28,18 @@ class MainActivityPrivacyTest {
     }
 
     @Test
+    fun privacyPanelExposesCookieModesAndClearDataActions() {
+        composeRule.onNodeWithText("Privacy & data").performClick()
+        composeRule.onNodeWithText("Cookie policy: ALLOW ALL").fetchSemanticsNode()
+        composeRule.onNodeWithText("Same origin").performClick()
+        composeRule.onNodeWithText("Cookie policy: SAME ORIGIN ONLY").fetchSemanticsNode()
+        composeRule.onNodeWithText("Clear site cookies").fetchSemanticsNode()
+        composeRule.onNodeWithText("Clear all cookies").fetchSemanticsNode()
+        composeRule.onNodeWithText("Clear cache").fetchSemanticsNode()
+        composeRule.onNodeWithText("Clear history").fetchSemanticsNode()
+    }
+
+    @Test
     fun privateModeEnablesSecureWindowAndExitClearsIt() {
         composeRule.runOnIdle {
             assertFalse("Normal mode must not set FLAG_SECURE", isWindowSecure())

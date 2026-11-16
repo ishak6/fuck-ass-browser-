@@ -87,6 +87,13 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 ## Extended feature implementation
 | Feature | Module | Status | Test that proves it |
 |---|---|---|---|
-| Android Keystore AES-256-GCM encryption primitive | :storage | Partial | Android instrumentation: round-trip, random IV, AAD/tamper rejection, malformed envelope and key deletion; CI verification pending; existing bookmark/history file is not yet encrypted |
+| Android Keystore AES-256-GCM encryption primitive | :storage | Done | API 35 storage instrumentation passed: round-trip, fresh random IV, AAD/tamper rejection, malformed envelope and key deletion; existing bookmark/history file is not yet encrypted |
 | Per-origin site permission policy | :privacy | Partial | Unit tests for default ASK, fail-closed URL parsing, IDN/origin normalization, per-permission decisions, bounded store and clearing; persistence/UI/runtime grants pending |
 | Origin-partitioned local/session storage primitive | :storage/:privacy | Partial | Unit tests for same-origin sharing, cross-origin/port/scheme isolation, IDN normalization, separate local/session buckets, quota enforcement and clear operations; DOM/persistence integration pending |
+
+
+## Extended milestone verification update — 2026-11-16
+- M13 Keystore cipher primitive: API 35 `:storage:connectedDebugAndroidTest` completed all five instrumentation tests successfully in run [43814740542](https://github.com/ishak6/fuck-ass-browser-/actions/runs/43814740542). The overall Android workflow still failed in the separate app privacy UI test; this does not invalidate the passing storage test task.
+- M14 site permission policy and M15 origin-storage primitive remain Partial: current code and unit tests cover bounded policy/partition logic, but Android permission mediation, UI, DOM integration and persistence are not complete.
+- Private-mode window flag regression remains open. A synchronous flag update was committed in `d059ba7683292491e99d8b3657ab64bffb006ebb`; its fresh emulator result is required before marking the regression fixed.
+- No physical-device validation is claimed.

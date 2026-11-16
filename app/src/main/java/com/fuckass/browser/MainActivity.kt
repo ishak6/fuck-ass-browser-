@@ -68,6 +68,8 @@ import com.fuckass.browser.privacy.PrivateSiteRules
 import com.fuckass.browser.search.BuiltInSearchProviders
 import com.fuckass.browser.search.NativeSearchClient
 import com.fuckass.browser.search.NativeSearchResult
+import com.fuckass.browser.search.InternetArchiveVideoClient
+import com.fuckass.browser.search.ArchiveVideoResult
 import com.fuckass.browser.storage.EphemeralPrivateProfile
 import com.fuckass.browser.storage.EncryptedSitePermissionStore
 import com.fuckass.browser.storage.FileBrowserDataStore
@@ -135,6 +137,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var historySnapshot by remember { mutableStateOf(navigationHistory.snapshot()) }
     var nativeResults by remember { mutableStateOf<List<NativeSearchResult>?>(null) }
     var nativeSearchQuery by remember { mutableStateOf("") }
+    var videoResults by remember { mutableStateOf<List<ArchiveVideoResult>?>(null) }
+    var videoSearchQuery by remember { mutableStateOf("") }
 
     SideEffect {
         if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -152,6 +156,77 @@ private fun BrowserShell(activity: ComponentActivity) {
             privateClient.close()
             privateClient.clearCookies()
             privateProfile.close()
+        }
+    }
+
+    fun confirmAndPlayVideo(url: String) {
+        AlertDialog.Builder(activity)
+            .setTitle("Play archive video?")
+            .setMessage("Playback uses Android's platform player. Browser ad blocking, cookie rules and private-session network isolation do not apply to this media request. Continue only if you trust the source.")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Play") { _, _ ->
+                activity.startActivity(
+                    Intent(activity, NativeVideoPlayerActivity::class.java)
+                        .putExtra(NativeVideoPlayerActivity.EXTRA_URL, url)
+                        .putExtra(NativeVideoPlayerActivity.EXTRA_PRIVATE, privateMode)
+                )
+            }
+            .show()
+    }
+
+    fun runVideoSearch(query: String) {
+        val cleanQuery = query.trim()
+        if (cleanQuery.isEmpty()) return
+        val requestGeneration = generationCounter.incrementAndGet()
+        navigationJob?.cancel()
+        normalClient.cancelActiveRequests()
+        privateClient.cancelActiveRequests()
+        val requestClient = if (privateMode) privateClient else normalClient
+        address = cleanQuery
+        videoSearchQuery = cleanQuery
+        videoResults = null
+        nativeResults = null
+        page = null
+        loading = true
+        error = null
+        navigationJob = scope.launch {
+            try {
+                val results = withContext(Dispatchers.IO) {
+                    InternetArchiveVideoClient().search(requestClient, cleanQuery)
+                }
+                if (generationCounter.get() == requestGeneration) {
+                    videoResults = results
+                    if (results.isEmpty()) error = "No public archive videos found for this query."
+                }
+            } catch (failure: Exception) {
+                if (generationCounter.get() == requestGeneration) {
+                    error = failure.message ?: "Video search failed"
+                }
+            } finally {
+                if (generationCounter.get() == requestGeneration) loading = false
+            }
+        }
+    }
+
+    fun resolveAndPlayArchiveVideo(identifier: String) {
+        val requestGeneration = generationCounter.incrementAndGet()
+        navigationJob?.cancel()
+        val requestClient = if (privateMode) privateClient else normalClient
+        loading = true
+        error = null
+        navigationJob = scope.launch {
+            try {
+                val mediaUrl = withContext(Dispatchers.IO) {
+                    InternetArchiveVideoClient().resolvePlayableMp4(requestClient, identifier)
+                }
+                if (generationCounter.get() == requestGeneration) confirmAndPlayVideo(mediaUrl)
+            } catch (failure: Exception) {
+                if (generationCounter.get() == requestGeneration) {
+                    error = failure.message ?: "No playable video file found"
+                }
+            } finally {
+                if (generationCounter.get() == requestGeneration) loading = false
+            }
         }
     }
 
@@ -209,19 +284,9 @@ private fun BrowserShell(activity: ComponentActivity) {
             else -> "https://$raw"
         }
         nativeResults = null
+        videoResults = null
         if (isDirectVideoUrl(target)) {
-            AlertDialog.Builder(activity)
-                .setTitle("Play direct video?")
-                .setMessage("This opens Android's platform player. Browser ad blocking, cookie rules and private-session network isolation do not apply to this video request. Continue only if you trust this URL.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Play") { _, _ ->
-                    activity.startActivity(
-                        Intent(activity, NativeVideoPlayerActivity::class.java)
-                            .putExtra(NativeVideoPlayerActivity.EXTRA_URL, target)
-                            .putExtra(NativeVideoPlayerActivity.EXTRA_PRIVATE, privateMode)
-                    )
-                }
-                .show()
+            confirmAndPlayVideo(target)
             return
         }
         val autoPrivate = !privateMode && requiresPrivateSession(false, target, privateSiteRules)
@@ -339,6 +404,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                         }
                     }
                 }
+                OutlinedButton(onClick = { runVideoSearch(address) }, enabled = address.isNotBlank() && !loading) {
+                    Text("Videos")
+                }
                 OutlinedButton(onClick = {
                     synchronized(sessionLock) { generationCounter.incrementAndGet() }
                     navigationJob?.cancel()
@@ -452,6 +520,32 @@ private fun BrowserShell(activity: ComponentActivity) {
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                 OutlinedButton(onClick = { dataControlsPanel = !dataControlsPanel }) {
                     Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
+                }
+            }
+            if (videoResults != null) {
+                Card(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp)) {
+                    Column(modifier = Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState())) {
+                        Text("Video results", style = MaterialTheme.typography.titleLarge)
+                        Text("Internet Archive public video catalogue for: $videoSearchQuery", style = MaterialTheme.typography.bodySmall)
+                        Text("Only publicly listed MP4 files are offered. Playback uses Android's platform decoder.", style = MaterialTheme.typography.bodySmall)
+                        videoResults.orEmpty().forEachIndexed { index, result ->
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                                Text(result.title, style = MaterialTheme.typography.titleMedium)
+                                if (result.description.isNotBlank()) Text(result.description, style = MaterialTheme.typography.bodyMedium)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(onClick = { resolveAndPlayArchiveVideo(result.identifier) }, enabled = !loading) {
+                                        Text("Play")
+                                    }
+                                    OutlinedButton(onClick = { navigate("https://archive.org/details/${result.identifier}") }) {
+                                        Text("Details")
+                                    }
+                                }
+                            }
+                            if (index != videoResults.orEmpty().lastIndex) {
+                                androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                            }
+                        }
+                    }
                 }
             }
             if (nativeResults != null) {
@@ -679,7 +773,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                     }
                 }
             }
-            if (page == null && nativeResults == null && !loading) {
+            if (page == null && nativeResults == null && videoResults == null && !loading) {
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
                     verticalArrangement = Arrangement.Center

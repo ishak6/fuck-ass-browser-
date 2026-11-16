@@ -15,6 +15,14 @@ class BrowserPrivacyPolicyTest {
         )
     }
 
+    @Test fun removesAdditionalKnownAdvertisingClickIdentifiers() {
+        val policy = BrowserPrivacyPolicy()
+        assertEquals(
+            "https://example.com/?q=hello&keep=1",
+            policy.sanitizeUrl("https://example.com/?ttclid=a&twclid=b&li_fat_id=c&gbraid=d&wbraid=e&srsltid=f&yclid=g&epik=h&q=hello&keep=1")
+        )
+    }
+
     @Test fun preservesOrdinaryQueryAndEncodedValues() {
         val policy = BrowserPrivacyPolicy()
         assertEquals(

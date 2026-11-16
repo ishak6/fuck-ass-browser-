@@ -38,7 +38,7 @@ class NativeSearchClient {
         val root = JSONObject(response.body.toString(Charsets.UTF_8))
         val entries = root.optJSONObject("query")?.optJSONArray("search")
             ?: throw IllegalStateException("Search service returned an invalid response")
-        buildList {
+        return buildList {
             for (index in 0 until minOf(entries.length(), MAX_RESULTS)) {
                 val item = entries.optJSONObject(index) ?: continue
                 val pageId = item.optLong("pageid", -1L)

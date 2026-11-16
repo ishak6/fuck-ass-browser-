@@ -43,12 +43,12 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Canvas/WebGL/audio noise | :privacy/:engine-render/:media | Not started | Surface-specific deterministic tests |
 | Generic user-agent | :privacy/:engine-net | Not started | Header consistency tests |
 | Cookie/third-party cookie control | :privacy | Not started | Cross-origin cookie tests |
-| Per-site isolated storage | :privacy/:storage | Not started | Origin isolation tests |
+| Per-site isolated storage | :privacy/:storage | Partial | `OriginStorageManager` provides bounded memory-only local/session partitions keyed by normalized HTTPS scheme/host/port; DOM bindings and durable persistence remain pending | Cross-origin, IDN, quota and DOM integration tests |
 | WebRTC leak control | :privacy | Not started | On-device ICE leak tests |
 | Private browsing | :privacy/:storage | Partial | Separate in-memory private cookies/history/cache and cleanup paths exist; full tab/storage audit pending | Private-profile isolation and cleanup tests |
 | Auto-clear history/cookies | :privacy/:storage | Not started | Deletion trigger tests |
 | Cache control | :privacy/:engine-net | Not started | Clear/retain tests |
-| Permission manager/dashboard | :privacy/:app | Not started | Permission state/UI tests |
+| Permission manager/dashboard | :privacy/:app | Partial | `SitePermissionManager` has bounded per-origin ASK/ALLOW/BLOCK decisions and fail-closed HTTPS/IDN origin parsing; Android runtime permission mediation, persistence and dashboard UI remain pending | Permission policy + runtime permission/UI tests |
 | Tracking parameter removal | :privacy | Partial | utm_/click-id removal fixtures; provider-specific coverage pending | utm_ and fbclid fixtures |
 | Referrer trimming | :privacy | Partial | Origin/same-origin/none policy fixtures | Request header tests |
 | VPN/Tor integration | :privacy | Not started | Routing/leak tests; not Tor Browser equivalence |
@@ -73,7 +73,8 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 | Find in page | :tools/:engine-html | Not started | DOM text search tests |
 | Zoom | :engine-render/:app | Not started | Layout scale tests |
 | Offline pages | :tools/:storage | Not started | Save/reopen fixture tests |
-| Encrypted password manager | :storage | Not started | Keystore encrypt/decrypt tests |
+| Android Keystore AES-256-GCM cipher primitive | :storage | Done | API 35 instrumentation passed five tests: round-trip, fresh IV, authenticated AAD/tamper rejection, malformed envelope and key deletion | Keystore instrumentation suite |
+| Encrypted password manager | :storage | Not started | Keystore-backed credential CRUD, unlock policy and secure persistence tests |
 | Compose UI | :app | Partial | Native Compose browser shell exists; broad UI coverage and accessibility tests pending | Compose UI tests |
 | Dark/light/system theme | :app | Not started | Theme UI tests |
 | Homepage/start page | :app/:storage | Not started | Preference persistence tests |
@@ -198,11 +199,17 @@ Status definitions: **Done** = implemented and covered by a passing repeatable t
 
 
 ## Extended milestone execution — 2026-11-16
-- M12 emulator regression: the API 35 run `43813297437` failed because the Compose instrumentation test timed out waiting for the `FLAG_SECURE` transition. Debug/release builds, unit tests and lint passed; API 26 and APK upload were skipped. The first follow-up test adjustment also failed, so the failure remains open.
-- Test correction attempt: changed the private-mode instrumentation assertions to run after Compose idleness rather than polling the window flag. This attempt is awaiting a fresh emulator CI result and is not yet verified.
+- M12 emulator regression: API 35 run `43813297437` timed out waiting for the `FLAG_SECURE` transition; the follow-up run `43814740542` reached the assertion but the flag was still unset after the Compose click. Debug/release builds, unit tests and lint passed; API 26 and APK upload were skipped. The toggle now updates the window flag synchronously in commit `d059ba7683292491e99d8b3657ab64bffb006ebb`; fresh emulator verification is pending.
+- Test correction: Compose-idle assertions alone did not solve the issue; the UI click handler now applies `FLAG_SECURE` synchronously before changing Compose state. Do not mark this regression fixed until a new API 35 run passes.
 - M13 started: added `AndroidKeyStoreCipher`, an Android Keystore-backed non-exportable AES-256-GCM key with authenticated associated data, random 96-bit IV envelope, 1 MiB plaintext/4 KiB AAD bounds and key deletion. Added emulator instrumentation coverage for round-trip, fresh IV, tamper/AAD rejection, malformed payload and key deletion.
-- M13 status: Partial / verification pending. The primitive is not yet wired into bookmark/history persistence or a password manager; no encrypted-at-rest claim is made for existing browser data.
+- M13 status: Done for the Keystore AES-GCM primitive and its defined emulator test gate. The five `:storage:connectedDebugAndroidTest` cases passed on API 35 in run `43814740542`. The primitive is not yet wired into bookmark/history persistence or a password manager; no encrypted-at-rest claim is made for existing browser data.
 - Extended roadmap M13–M49 is now recorded. M12 is the original core validation gate; M49 is the extended whole-project release gate.
 - No physical Android device has been tested. Emulator CI results must be checked before claiming the new tests pass.
 - M14 started in parallel with M13 CI: added a bounded per-origin permission policy for camera, microphone, location, notifications, JavaScript, popups and automatic downloads. Unknown sites default to ASK; malformed/non-HTTPS URLs fail closed; scheme/IDN host/effective port define the origin; in-memory entries are bounded and clearable. Persistent storage, Compose permission dashboard and Android runtime-permission mediation are still pending, so M14 is Partial.
 - M15 started while M13/M14 CI runs: added a bounded, memory-only local/session key-value partition manager keyed by canonical HTTPS origin (scheme/host/port), with per-origin and aggregate byte quotas, entry/origin caps, explicit clear operations and cross-origin/IDN tests. It is not yet connected to DOM JavaScript APIs or durable storage; M15 remains Partial.
+
+
+## Latest pipeline checkpoint — 2026-11-16
+- Android CI run [43814740542](https://github.com/ishak6/fuck-ass-browser-/actions/runs/43814740542): Debug/Release builds, unit tests and lint passed; the app privacy instrumentation failed because `FLAG_SECURE` was not set after the Compose click. The storage instrumentation task subsequently ran all five M13 Keystore tests successfully. API 26 and APK upload were skipped due to the app test failure.
+- CodeQL run [43814740545](https://github.com/ishak6/fuck-ass-browser-/actions/runs/43814740545) succeeded. Findings still require review; a successful scan is not a zero-vulnerability guarantee.
+- Commit `d059ba7683292491e99d8b3657ab64bffb006ebb` changes the private-mode toggle to set/clear the window flag synchronously. New CI verification is required.

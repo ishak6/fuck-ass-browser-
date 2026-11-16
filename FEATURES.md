@@ -88,8 +88,8 @@ Read this file, FEATURES.md and ROADMAP.md. Continue the current milestone only.
 | Feature | Module | Status | Test that proves it |
 |---|---|---|---|
 | Android Keystore AES-256-GCM encryption primitive | :storage | Done | API 35 storage instrumentation passed: round-trip, fresh random IV, AAD/tamper rejection, malformed envelope and key deletion; existing bookmark/history file is not yet encrypted |
-| Per-origin site permission policy | :privacy | Partial | Unit tests for default ASK, fail-closed URL parsing, IDN/origin normalization, per-permission decisions, bounded store and clearing; persistence/UI/runtime grants pending |
-| Origin-partitioned local/session storage primitive | :storage/:privacy | Partial | Unit tests for same-origin sharing, cross-origin/port/scheme isolation, IDN normalization, separate local/session buckets, quota enforcement and clear operations; DOM/persistence integration pending |
+| Per-origin site permission policy | :privacy/:storage/:app | Partial | Unit tests for default ASK, fail-closed URL parsing, IDN/origin normalization and bounded store; encrypted persistence tests and Compose Ask/Allow/Block dashboard smoke test added; Android runtime grants are not wired because no site capability currently invokes them |
+| Origin-partitioned local/session storage primitive | :storage/:privacy | Partial | Unit tests cover same-origin sharing, cross-origin/port/scheme isolation, IDN normalization, quotas and clear operations; OriginStorageSession host adapter adds origin-bound local/session areas and close cleanup; JavaScript/DOM binding and persistence pending |
 
 
 ## Extended milestone verification update — 2026-11-16

@@ -120,4 +120,5 @@ interface BrowserDataStore {
     fun bookmarks(): List<Pair<String, String>>
     fun addHistory(url: String, visitedAtEpochMs: Long)
     fun history(limit: Int = 100): List<Pair<String, Long>>
+    fun clearHistory()
 }

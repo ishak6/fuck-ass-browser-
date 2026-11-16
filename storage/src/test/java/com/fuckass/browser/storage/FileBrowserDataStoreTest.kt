@@ -41,6 +41,23 @@ class FileBrowserDataStoreTest {
         }
     }
 
+    @Test fun clearHistoryPersistsWithoutDeletingBookmarks() {
+        val directory = Files.createTempDirectory("browser-store").toFile()
+        try {
+            val store = FileBrowserDataStore(directory)
+            store.saveBookmark("https://example.test", "Example")
+            store.addHistory("https://example.test/page", 10L)
+
+            store.clearHistory()
+
+            val reopened = FileBrowserDataStore(directory)
+            assertTrue(reopened.history().isEmpty())
+            assertEquals(listOf("https://example.test" to "Example"), reopened.bookmarks())
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
     @Test fun invalidHistoryLimitIsRejected() {
         val directory = Files.createTempDirectory("browser-store").toFile()
         try {

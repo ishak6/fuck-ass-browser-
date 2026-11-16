@@ -50,6 +50,8 @@ import com.fuckass.browser.engine.html.HtmlText
 import com.fuckass.browser.engine.html.HtmlTokenizer
 import com.fuckass.browser.engine.html.HtmlTreeBuilder
 import com.fuckass.browser.engine.net.BrowserHttpClient
+import com.fuckass.browser.engine.net.CookieAccessPolicy
+import com.fuckass.browser.engine.net.CookieMode
 import com.fuckass.browser.engine.net.BrowserHttpRequest
 import com.fuckass.browser.engine.render.CanvasRenderer
 import com.fuckass.browser.engine.render.LayoutEngine
@@ -90,8 +92,10 @@ private data class LoadedPage(
 private fun BrowserShell(activity: ComponentActivity) {
     val normalCookies = remember { CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
     val privateCookies = remember { CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER) }
-    val normalClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = normalCookies) }
-    val privateClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = privateCookies) }
+    val normalCookiePolicy = remember { CookieAccessPolicy() }
+    val privateCookiePolicy = remember { CookieAccessPolicy() }
+    val normalClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = normalCookies, cookieAccessPolicy = normalCookiePolicy) }
+    val privateClient = remember { BrowserHttpClient(privacyPolicy = BrowserPrivacyPolicy(), cookieManager = privateCookies, cookieAccessPolicy = privateCookiePolicy) }
     val renderer = remember { CanvasRenderer() }
     val privateProfile = remember { EphemeralPrivateProfile() }
     val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
@@ -117,6 +121,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     var permissionRevision by remember { mutableStateOf(0) }
     var dataControlsPanel by remember { mutableStateOf(false) }
     var dataControlsRevision by remember { mutableStateOf(0) }
+    var cookieMode by remember { mutableStateOf(CookieMode.ALLOW_ALL) }
     var privateSiteHosts by remember { mutableStateOf(privateSiteStore.hosts()) }
     val privateSiteRules = remember(privateSiteHosts) { PrivateSiteRules(privateSiteHosts) }
     var loading by remember { mutableStateOf(false) }
@@ -439,6 +444,26 @@ private fun BrowserShell(activity: ComponentActivity) {
                         Text("Privacy & data controls", style = MaterialTheme.typography.titleMedium)
                         Text(
                             "Cookies and cache are stored separately for normal and private sessions.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text("Cookie policy: ${cookieMode.name.replace('_', ' ')}", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            CookieMode.entries.forEach { mode ->
+                                OutlinedButton(onClick = {
+                                    cookieMode = mode
+                                    normalCookiePolicy.setMode(mode)
+                                    privateCookiePolicy.setMode(mode)
+                                }) {
+                                    Text(when (mode) {
+                                        CookieMode.ALLOW_ALL -> "All"
+                                        CookieMode.SAME_ORIGIN_ONLY -> "Same origin"
+                                        CookieMode.BLOCK_ALL -> "Block"
+                                    })
+                                }
+                            }
+                        }
+                        Text(
+                            "Same origin is stricter than same-site: scheme, host and port must all match. This is not a public-suffix-list implementation.",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(

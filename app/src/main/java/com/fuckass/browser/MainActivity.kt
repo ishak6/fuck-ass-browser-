@@ -33,6 +33,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,9 +56,14 @@ import com.fuckass.browser.engine.render.LayoutEngine
 import com.fuckass.browser.engine.render.LayoutResult
 import com.fuckass.browser.engine.render.LayoutViewport
 import com.fuckass.browser.privacy.BrowserPrivacyPolicy
+import com.fuckass.browser.privacy.SiteOrigin
+import com.fuckass.browser.privacy.SitePermission
+import com.fuckass.browser.privacy.SitePermissionDecision
+import com.fuckass.browser.privacy.SitePermissionManager
 import com.fuckass.browser.privacy.PrivateSiteRules
 import com.fuckass.browser.search.BuiltInSearchProviders
 import com.fuckass.browser.storage.EphemeralPrivateProfile
+import com.fuckass.browser.storage.EncryptedSitePermissionStore
 import com.fuckass.browser.storage.FileBrowserDataStore
 import com.fuckass.browser.storage.FilePrivateSiteRulesStore
 import kotlinx.coroutines.Dispatchers
@@ -90,6 +96,10 @@ private fun BrowserShell(activity: ComponentActivity) {
     val privateProfile = remember { EphemeralPrivateProfile() }
     val persistentStore = remember(activity) { FileBrowserDataStore(activity.filesDir) }
     val privateSiteStore = remember(activity) { FilePrivateSiteRulesStore(activity.filesDir) }
+    val permissionStoreResult = remember(activity) { runCatching { EncryptedSitePermissionStore(activity.filesDir) } }
+    val sitePermissionManager = remember(permissionStoreResult) {
+        permissionStoreResult.getOrNull()?.let(::SitePermissionManager)
+    }
     val generationCounter = remember { AtomicInteger(0) }
     val navigationHistory = remember { BrowserNavigationHistory() }
     val sessionLock = remember { Any() }
@@ -103,6 +113,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var historyMenu by remember { mutableStateOf(false) }
     var historyItems by remember { mutableStateOf(persistentStore.history().asReversed().map { it.first }) }
     var privateMode by remember { mutableStateOf(false) }
+    var permissionPanel by remember { mutableStateOf(false) }
+    var permissionRevision by remember { mutableStateOf(0) }
     var privateSiteHosts by remember { mutableStateOf(privateSiteStore.hosts()) }
     val privateSiteRules = remember(privateSiteHosts) { PrivateSiteRules(privateSiteHosts) }
     var loading by remember { mutableStateOf(false) }
@@ -280,6 +292,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                     page = null
                     address = ""
                 }) { Text(if (privateMode) "Private: ON" else "Private: OFF") }
+                OutlinedButton(onClick = { permissionPanel = !permissionPanel }) {
+                    Text(if (permissionPanel) "Hide permissions" else "Site permissions")
+                }
                 Box {
                     OutlinedButton(onClick = { historyMenu = true }) { Text("History") }
                     DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
@@ -362,6 +377,51 @@ private fun BrowserShell(activity: ComponentActivity) {
                     onClick = { if (address.isNotBlank()) navigate(address, recordHistory = false) },
                     enabled = address.isNotBlank() && !loading
                 ) { Text("Refresh") }
+            }
+            if (permissionPanel) {
+                val permissionUrl = page?.url ?: address
+                val validPermissionOrigin = SiteOrigin.fromUrl(permissionUrl) != null
+                Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                        Text("Site permission controls", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (validPermissionOrigin) "Origin: ${SiteOrigin.fromUrl(permissionUrl)}"
+                            else "Open an HTTPS site to edit its permissions.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        permissionStoreResult.exceptionOrNull()?.let {
+                            Text("Encrypted permission storage unavailable: ${it.message ?: "initialization failed"}", color = MaterialTheme.colorScheme.error)
+                        }
+                        if (sitePermissionManager != null && validPermissionOrigin) {
+                            key(permissionRevision) {
+                                SitePermission.entries.forEach { permission ->
+                                    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                        Text(permission.name.replace('_', ' '), style = MaterialTheme.typography.labelLarge)
+                                        Text("Current: ${sitePermissionManager.decision(permissionUrl, permission)}", style = MaterialTheme.typography.bodySmall)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            SitePermissionDecision.entries.forEach { decision ->
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        runCatching { sitePermissionManager.setDecision(permissionUrl, permission, decision) }
+                                                            .onSuccess { permissionRevision++ }
+                                                            .onFailure { failure -> error = failure.message ?: "Could not save site permission" }
+                                                    },
+                                                    enabled = !privateMode
+                                                ) { Text(decision.name) }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Text(
+                                "Camera, microphone and location also require Android runtime permission. Site ALLOW does not grant Android access.",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                        if (privateMode) Text("Site permission changes are disabled in private mode.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
             if (privateMode) {
                 Text(

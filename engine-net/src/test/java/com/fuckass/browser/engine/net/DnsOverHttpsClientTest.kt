@@ -30,6 +30,27 @@ class DnsOverHttpsClientTest {
     }
 
     @Test
+    fun rejectsUnexpectedContentType() {
+        val client = DnsOverHttpsClient(connectionFactory = {
+            FakeHttpsConnection(it, mimeType = "text/plain")
+        })
+        assertThrows(IllegalStateException::class.java) {
+            client.resolve("example.test")
+        }
+    }
+
+    @Test
+    fun enforcesResponseByteLimit() {
+        val client = DnsOverHttpsClient(
+            maxResponseBytes = 12,
+            connectionFactory = { FakeHttpsConnection(it) }
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            client.resolve("example.test")
+        }
+    }
+
+    @Test
     fun rejectsNonHttpsResolverEndpoint() {
         assertThrows(IllegalArgumentException::class.java) {
             DnsOverHttpsClient(endpoint = "http://resolver.example/dns-query")
@@ -49,7 +70,10 @@ class DnsOverHttpsClientTest {
         assertTrue(!opened)
     }
 
-    private class FakeHttpsConnection(url: URL) : HttpsURLConnection(url) {
+    private class FakeHttpsConnection(
+        url: URL,
+        private val mimeType: String = "application/dns-message"
+    ) : HttpsURLConnection(url) {
         private val output = ByteArrayOutputStream()
         val requestBody: ByteArray get() = output.toByteArray()
         var requestedContentType: String? = null
@@ -62,7 +86,7 @@ class DnsOverHttpsClientTest {
         override fun getInputStream(): java.io.InputStream =
             ByteArrayInputStream(responseFor(requestBody))
         override fun getResponseCode() = 200
-        override fun getContentType() = "application/dns-message"
+        override fun getContentType() = mimeType
         override fun setRequestProperty(key: String?, value: String?) {
             if (key.equals("Content-Type", true)) requestedContentType = value
         }

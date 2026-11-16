@@ -123,8 +123,8 @@ class DnsOverHttpsClient(
         val questions = u16(4)
         val answers = u16(6)
         require(questions == 1 && answers <= 256) { "Unexpected DNS section counts" }
-        val questionName = readQuestionName(message, 12)
-        var offset = skipName(message, 12)
+        val (questionName, questionEnd) = readName(message, 12)
+        var offset = questionEnd
         require(offset + 4 <= message.size) { "Truncated DNS question" }
         require(questionName.equals(expectedName, ignoreCase = true) &&
             u16(offset) == type.wireValue && u16(offset + 2) == 1
@@ -132,14 +132,17 @@ class DnsOverHttpsClient(
         offset += 4
         val result = linkedSetOf<String>()
         repeat(answers) {
-            offset = skipName(message, offset)
+            val (ownerName, ownerEnd) = readName(message, offset)
+            offset = ownerEnd
             require(offset + 10 <= message.size) { "Truncated DNS answer" }
             val answerType = u16(offset)
             val answerClass = u16(offset + 2)
             val dataLength = u16(offset + 8)
             offset += 10
             require(offset + dataLength <= message.size) { "Truncated DNS record data" }
-            if (answerClass == 1 && answerType == type.wireValue && dataLength == type.byteLength) {
+            if (ownerName.equals(expectedName, ignoreCase = true) && answerClass == 1 &&
+                answerType == type.wireValue && dataLength == type.byteLength
+            ) {
                 val addressBytes = message.copyOfRange(offset, offset + dataLength)
                 result += InetAddress.getByAddress(addressBytes).hostAddress
             }
@@ -148,42 +151,34 @@ class DnsOverHttpsClient(
         return result.toList()
     }
 
-    private fun readQuestionName(message: ByteArray, start: Int): String {
+    private fun readName(message: ByteArray, start: Int): Pair<String, Int> {
         val labels = mutableListOf<String>()
         var offset = start
-        while (true) {
-            require(offset < message.size) { "Truncated DNS question name" }
-            val length = message[offset++].toInt() and 0xff
-            if (length == 0) break
-            require(length <= 63 && length and 0xc0 == 0 && offset + length <= message.size) {
-                "Invalid DNS question label"
-            }
-            labels += String(message, offset, length, Charsets.US_ASCII)
-            offset += length
-        }
-        return labels.joinToString(".")
-    }
-
-    private fun skipName(message: ByteArray, start: Int): Int {
-        var offset = start
+        var nextOffset = -1
         var jumps = 0
         while (true) {
             require(offset < message.size) { "Truncated DNS name" }
             val length = message[offset].toInt() and 0xff
             when {
-                length == 0 -> return offset + 1
+                length == 0 -> {
+                    if (nextOffset == -1) nextOffset = offset + 1
+                    break
+                }
                 length and 0xc0 == 0xc0 -> {
                     require(offset + 1 < message.size) { "Truncated DNS compression pointer" }
                     val pointer = ((length and 0x3f) shl 8) or (message[offset + 1].toInt() and 0xff)
                     require(pointer < message.size && ++jumps <= 16) { "Invalid DNS compression pointer" }
-                    return offset + 2
+                    if (nextOffset == -1) nextOffset = offset + 2
+                    offset = pointer
                 }
                 length and 0xc0 != 0 -> throw IllegalArgumentException("Invalid DNS label length")
                 else -> {
                     require(length <= 63 && offset + 1 + length <= message.size) { "Truncated DNS label" }
+                    labels += String(message, offset + 1, length, Charsets.US_ASCII)
                     offset += 1 + length
                 }
             }
         }
+        return labels.joinToString(".") to nextOffset
     }
 }

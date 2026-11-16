@@ -75,7 +75,8 @@ class InternetArchiveVideoClient {
         private const val MAX_METADATA_BYTES = 4_194_304
 
         internal fun escapeLucenePhrase(value: String): String =
-            value.replace("\\", " ").replace("\"", " ").replace(Regex("[\\r\\n\\t]"), " ").trim()
+            value.replace("\\", " ").replace("\"", " ").replace(Regex("[\\r\\n\\t]"), " ")
+                .replace(Regex("\\s+"), " ").trim()
 
         internal fun cleanText(value: String): String =
             value.replace(Regex("<[^>]{0,256}>"), " ")

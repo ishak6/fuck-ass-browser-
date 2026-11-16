@@ -96,7 +96,8 @@ class BrowserPrivacyPolicy(
     companion object {
         private val TRACKING_PARAMETERS = setOf(
             "fbclid", "gclid", "dclid", "msclkid", "mc_cid", "mc_eid",
-            "igshid", "vero_id", "oly_anon_id", "oly_enc_id"
+            "igshid", "vero_id", "oly_anon_id", "oly_enc_id",
+            "ttclid", "twclid", "li_fat_id", "gbraid", "wbraid", "srsltid", "yclid", "epik"
         )
     }
 }

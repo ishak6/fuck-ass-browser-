@@ -115,6 +115,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var privateMode by remember { mutableStateOf(false) }
     var permissionPanel by remember { mutableStateOf(false) }
     var permissionRevision by remember { mutableStateOf(0) }
+    var dataControlsPanel by remember { mutableStateOf(false) }
+    var dataControlsRevision by remember { mutableStateOf(0) }
     var privateSiteHosts by remember { mutableStateOf(privateSiteStore.hosts()) }
     val privateSiteRules = remember(privateSiteHosts) { PrivateSiteRules(privateSiteHosts) }
     var loading by remember { mutableStateOf(false) }
@@ -295,6 +297,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                 OutlinedButton(onClick = { permissionPanel = !permissionPanel }) {
                     Text(if (permissionPanel) "Hide permissions" else "Site permissions")
                 }
+                OutlinedButton(onClick = { dataControlsPanel = !dataControlsPanel }) {
+                    Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
+                }
                 Box {
                     OutlinedButton(onClick = { historyMenu = true }) { Text("History") }
                     DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
@@ -424,6 +429,62 @@ private fun BrowserShell(activity: ComponentActivity) {
                             )
                         }
                         if (privateMode) Text("Site permission changes are disabled in private mode.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            if (dataControlsPanel) {
+                val currentSiteUrl = page?.url ?: address
+                Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                        Text("Privacy & data controls", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Cookies and cache are stored separately for normal and private sessions.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            if (currentSiteUrl.startsWith("https://", true)) "Current page: $currentSiteUrl"
+                            else "Open an HTTPS page to clear that site's cookies.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    val removed = normalClient.clearCookiesFor(currentSiteUrl)
+                                    dataControlsRevision++
+                                    error = "Removed $removed cookie(s) for this site"
+                                },
+                                enabled = !privateMode && currentSiteUrl.startsWith("https://", true)
+                            ) { Text("Clear site cookies") }
+                            OutlinedButton(
+                                onClick = {
+                                    normalClient.clearCookies()
+                                    dataControlsRevision++
+                                    error = "All normal-session cookies cleared"
+                                },
+                                enabled = !privateMode
+                            ) { Text("Clear all cookies") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    normalClient.clearCache()
+                                    dataControlsRevision++
+                                    error = "Normal-session cache cleared"
+                                },
+                                enabled = !privateMode
+                            ) { Text("Clear cache") }
+                            OutlinedButton(
+                                onClick = {
+                                    persistentStore.clearHistory()
+                                    historyItems = emptyList()
+                                    dataControlsRevision++
+                                    error = "Browsing history cleared"
+                                },
+                                enabled = !privateMode
+                            ) { Text("Clear history") }
+                        }
+                        Text("Private-session data is cleared separately when private mode exits or Panic clear is used.", style = MaterialTheme.typography.bodySmall)
+                        if (dataControlsRevision > 0) Text("Data controls updated.", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

@@ -191,7 +191,7 @@ class BrowserHttpClient(
 
                 val status = connection.responseCode
                 if (status in REDIRECT_CODES) {
-                    if (privacyPolicy.allowCookies(current.toString())) {
+                    if (privacyPolicy.allowCookies(current.toString()) && cookieAccessPolicy.allows(current.toString(), request.topLevelUrl)) {
                         cookieManager?.put(current.toURI(), responseHeaders(connection))
                     }
                     val location = connection.getHeaderField("Location")
@@ -230,7 +230,7 @@ class BrowserHttpClient(
                 val bytes = if (currentMethod == "HEAD" || stream == null) ByteArray(0) else
                     readBounded(if (connection.contentEncoding.equals("gzip", true)) GZIPInputStream(stream) else stream)
                 val responseHeaders = responseHeaders(connection)
-                if (privacyPolicy.allowCookies(current.toString())) {
+                if (privacyPolicy.allowCookies(current.toString()) && cookieAccessPolicy.allows(current.toString(), request.topLevelUrl)) {
                     cookieManager?.put(current.toURI(), responseHeaders)
                 }
                 val response = BrowserHttpResponse(current.toString(), status, responseHeaders, bytes, false)

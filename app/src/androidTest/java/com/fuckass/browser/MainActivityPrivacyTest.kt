@@ -22,15 +22,18 @@ class MainActivityPrivacyTest {
 
     @Test
     fun privateModeEnablesSecureWindowAndExitClearsIt() {
-        composeRule.waitUntil(timeoutMillis = 5_000) { !isWindowSecure() }
-        assertFalse("Normal mode must not set FLAG_SECURE", isWindowSecure())
+        composeRule.runOnIdle {
+            assertFalse("Normal mode must not set FLAG_SECURE", isWindowSecure())
+        }
 
         composeRule.onNodeWithText("Private: OFF").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) { isWindowSecure() }
-        assertTrue("Private mode must set FLAG_SECURE", isWindowSecure())
+        composeRule.runOnIdle {
+            assertTrue("Entering private mode must set FLAG_SECURE", isWindowSecure())
+        }
 
         composeRule.onNodeWithText("Private: ON").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) { !isWindowSecure() }
-        assertFalse("Leaving private mode must clear FLAG_SECURE", isWindowSecure())
+        composeRule.runOnIdle {
+            assertFalse("Leaving private mode must clear FLAG_SECURE", isWindowSecure())
+        }
     }
 }

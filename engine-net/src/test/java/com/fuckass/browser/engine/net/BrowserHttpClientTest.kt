@@ -24,8 +24,8 @@ class BrowserHttpClientTest {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         val first = URI("https://first.example/")
         val second = URI("https://second.example/")
-        cookies.cookieStore.add(first, HttpCookie("sid", "one"))
-        cookies.cookieStore.add(second, HttpCookie("sid", "two"))
+        cookies.cookieStore.add(first, HttpCookie("sid", "one").apply { domain = "first.example"; path = "/" })
+        cookies.cookieStore.add(second, HttpCookie("sid", "two").apply { domain = "second.example"; path = "/" })
         val client = BrowserHttpClient(cookieManager = cookies)
         try {
             assertEquals(1, client.clearCookiesFor("https://first.example/path"))

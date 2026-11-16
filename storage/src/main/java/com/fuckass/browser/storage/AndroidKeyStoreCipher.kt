@@ -5,7 +5,6 @@ import android.security.keystore.KeyProperties
 import java.nio.ByteBuffer
 import java.security.GeneralSecurityException
 import java.security.KeyStore
-import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -56,7 +55,7 @@ class AndroidKeyStoreCipher(
         if (input.int != MAGIC) throw GeneralSecurityException("Invalid encrypted payload header")
         if (input.get() != VERSION) throw GeneralSecurityException("Unsupported encrypted payload version")
         val ivLength = input.get().toInt() and 0xff
-        if (ivLength != GCM_IV_BYTES || input.remaining() <= ivLength + GCM_TAG_BYTES) {
+        if (ivLength != GCM_IV_BYTES || input.remaining() < ivLength + GCM_TAG_BYTES) {
             throw GeneralSecurityException("Invalid encrypted payload structure")
         }
         val iv = ByteArray(ivLength)

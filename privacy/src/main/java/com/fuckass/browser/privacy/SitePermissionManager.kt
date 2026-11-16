@@ -31,19 +31,36 @@ data class SiteOrigin(
     companion object {
         fun fromUrl(url: String): SiteOrigin? {
             val uri = runCatching { URI(url) }.getOrNull() ?: return null
-            if (!uri.scheme.equals("https", ignoreCase = true) ||
-                uri.rawUserInfo != null || uri.host.isNullOrBlank()
-            ) return null
-            val asciiHost = runCatching {
-                IDN.toASCII(uri.host.trimEnd('.'), IDN.USE_STD3_ASCII_RULES)
+            if (!uri.scheme.equals("https", ignoreCase = true) || uri.rawUserInfo != null) return null
+            val authority = uri.rawAuthority ?: return null
+            val rawHost: String
+            val explicitPort: String?
+            if (authority.startsWith("[")) {
+                val closingBracket = authority.indexOf(']')
+                if (closingBracket <= 1) return null
+                rawHost = authority.substring(0, closingBracket + 1).lowercase(Locale.ROOT)
+                val suffix = authority.substring(closingBracket + 1)
+                if (suffix.isNotEmpty() && !suffix.startsWith(":")) return null
+                explicitPort = suffix.removePrefix(":").ifEmpty { null }
+            } else {
+                val colon = authority.lastIndexOf(':')
+                if (colon >= 0) {
+                    if (authority.indexOf(':') != colon) return null
+                    rawHost = authority.substring(0, colon)
+                    explicitPort = authority.substring(colon + 1).ifEmpty { return null }
+                } else {
+                    rawHost = authority
+                    explicitPort = null
+                }
+            }
+            if (rawHost.isBlank()) return null
+            val asciiHost = if (rawHost.startsWith("[")) rawHost else runCatching {
+                IDN.toASCII(rawHost.trimEnd('.'), IDN.USE_STD3_ASCII_RULES)
                     .lowercase(Locale.ROOT)
             }.getOrNull() ?: return null
             if (asciiHost.isBlank() || asciiHost.length > 253) return null
-            val port = when {
-                uri.port == -1 -> 443
-                uri.port in 1..65535 -> uri.port
-                else -> return null
-            }
+            val port = if (explicitPort == null) 443 else explicitPort.toIntOrNull()
+                ?.takeIf { it in 1..65535 } ?: return null
             return SiteOrigin("https", asciiHost, port)
         }
     }

@@ -1,6 +1,7 @@
 package com.fuckass.browser
 
 import android.os.Bundle
+import android.app.AlertDialog
 import android.content.Intent
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -209,7 +210,18 @@ private fun BrowserShell(activity: ComponentActivity) {
         }
         nativeResults = null
         if (isDirectVideoUrl(target)) {
-            activity.startActivity(Intent(activity, NativeVideoPlayerActivity::class.java).putExtra(NativeVideoPlayerActivity.EXTRA_URL, target))
+            AlertDialog.Builder(activity)
+                .setTitle("Play direct video?")
+                .setMessage("This opens Android's platform player. Browser ad blocking, cookie rules and private-session network isolation do not apply to this video request. Continue only if you trust this URL.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Play") { _, _ ->
+                    activity.startActivity(
+                        Intent(activity, NativeVideoPlayerActivity::class.java)
+                            .putExtra(NativeVideoPlayerActivity.EXTRA_URL, target)
+                            .putExtra(NativeVideoPlayerActivity.EXTRA_PRIVATE, privateMode)
+                    )
+                }
+                .show()
             return
         }
         val autoPrivate = !privateMode && requiresPrivateSession(false, target, privateSiteRules)
@@ -303,6 +315,9 @@ private fun BrowserShell(activity: ComponentActivity) {
                     placeholder = { Text("Search or enter HTTPS address") }
                 )
                 Button(onClick = { navigate(address) }, enabled = !loading) { Text("Go") }
+            }
+            if (selectedProvider == "wikipedia") {
+                Text("Native search sends your query to Wikipedia. Other providers open their result pages.", style = MaterialTheme.typography.bodySmall)
             }
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp),
@@ -711,6 +726,9 @@ class NativeVideoPlayerActivity : ComponentActivity() {
             finish()
             return
         }
+        if (intent.getBooleanExtra(EXTRA_PRIVATE, false)) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
         val video = android.widget.VideoView(this)
         val controls = android.widget.MediaController(this)
         controls.setAnchorView(video)
@@ -727,5 +745,6 @@ class NativeVideoPlayerActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_URL = "com.fuckass.browser.extra.VIDEO_URL"
+        const val EXTRA_PRIVATE = "com.fuckass.browser.extra.VIDEO_PRIVATE"
     }
 }

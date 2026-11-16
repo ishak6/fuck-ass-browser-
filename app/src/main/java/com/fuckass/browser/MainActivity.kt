@@ -1,6 +1,7 @@
 package com.fuckass.browser
 
 import android.os.Bundle
+import android.content.Intent
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.net.URI
@@ -64,6 +65,8 @@ import com.fuckass.browser.privacy.SitePermissionDecision
 import com.fuckass.browser.privacy.SitePermissionManager
 import com.fuckass.browser.privacy.PrivateSiteRules
 import com.fuckass.browser.search.BuiltInSearchProviders
+import com.fuckass.browser.search.NativeSearchClient
+import com.fuckass.browser.search.NativeSearchResult
 import com.fuckass.browser.storage.EphemeralPrivateProfile
 import com.fuckass.browser.storage.EncryptedSitePermissionStore
 import com.fuckass.browser.storage.FileBrowserDataStore
@@ -110,7 +113,7 @@ private fun BrowserShell(activity: ComponentActivity) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     var address by remember { mutableStateOf("") }
-    var selectedProvider by remember { mutableStateOf("ddg") }
+    var selectedProvider by remember { mutableStateOf("wikipedia") }
     var providerMenu by remember { mutableStateOf(false) }
     var bookmarkMenu by remember { mutableStateOf(false) }
     var bookmarkItems by remember { mutableStateOf(persistentStore.bookmarks()) }
@@ -129,6 +132,8 @@ private fun BrowserShell(activity: ComponentActivity) {
     var page by remember { mutableStateOf<LoadedPage?>(null) }
     var navigationJob by remember { mutableStateOf<Job?>(null) }
     var historySnapshot by remember { mutableStateOf(navigationHistory.snapshot()) }
+    var nativeResults by remember { mutableStateOf<List<NativeSearchResult>?>(null) }
+    var nativeSearchQuery by remember { mutableStateOf("") }
 
     SideEffect {
         if (privateMode) activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -149,9 +154,48 @@ private fun BrowserShell(activity: ComponentActivity) {
         }
     }
 
+    fun runNativeSearch(query: String) {
+        val cleanQuery = query.trim()
+        if (cleanQuery.isEmpty()) return
+        val requestGeneration = generationCounter.incrementAndGet()
+        navigationJob?.cancel()
+        normalClient.cancelActiveRequests()
+        privateClient.cancelActiveRequests()
+        val requestClient = if (privateMode) privateClient else normalClient
+        address = cleanQuery
+        nativeSearchQuery = cleanQuery
+        nativeResults = null
+        page = null
+        loading = true
+        error = null
+        navigationJob = scope.launch {
+            try {
+                val results = withContext(Dispatchers.IO) {
+                    NativeSearchClient().search(requestClient, cleanQuery)
+                }
+                if (generationCounter.get() == requestGeneration) {
+                    nativeResults = results
+                    if (results.isEmpty()) error = "No Wikipedia results found. Try a different query."
+                }
+            } catch (failure: Exception) {
+                if (generationCounter.get() == requestGeneration) {
+                    error = failure.message ?: "Native search failed"
+                }
+            } finally {
+                if (generationCounter.get() == requestGeneration) loading = false
+            }
+        }
+    }
+
     fun navigate(input: String, recordHistory: Boolean = true, onHistorySuccess: (() -> Unit)? = null) {
         val raw = input.trim()
         if (raw.isEmpty()) return
+        if (!raw.startsWith("https://", true) && !raw.startsWith("http://", true) &&
+            (raw.contains(' ') || !raw.contains('.')) && selectedProvider == "wikipedia"
+        ) {
+            runNativeSearch(raw)
+            return
+        }
         val target = when {
             raw.startsWith("https://", true) -> raw
             raw.startsWith("http://", true) -> {
@@ -162,6 +206,11 @@ private fun BrowserShell(activity: ComponentActivity) {
                 BuiltInSearchProviders.find(selectedProvider)?.searchUri(raw)?.toString()
                     ?: BuiltInSearchProviders.find("ddg")!!.searchUri(raw).toString()
             else -> "https://$raw"
+        }
+        nativeResults = null
+        if (isDirectVideoUrl(target)) {
+            activity.startActivity(Intent(activity, NativeVideoPlayerActivity::class.java).putExtra(NativeVideoPlayerActivity.EXTRA_URL, target))
+            return
         }
         val autoPrivate = !privateMode && requiresPrivateSession(false, target, privateSiteRules)
         if (autoPrivate && !privateMode) {
@@ -390,6 +439,26 @@ private fun BrowserShell(activity: ComponentActivity) {
                     Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
                 }
             }
+            if (nativeResults != null) {
+                Card(modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp)) {
+                    Column(modifier = Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState())) {
+                        Text("Search results", style = MaterialTheme.typography.titleLarge)
+                        Text("Wikipedia native results for: $nativeSearchQuery", style = MaterialTheme.typography.bodySmall)
+                        Text("Powered by Wikimedia's public search API. Other providers open their result pages.", style = MaterialTheme.typography.bodySmall)
+                        nativeResults.orEmpty().forEachIndexed { index, result ->
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                                Text(result.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                if (result.snippet.isNotBlank()) Text(result.snippet, style = MaterialTheme.typography.bodyMedium)
+                                Text(result.url, style = MaterialTheme.typography.bodySmall)
+                                OutlinedButton(onClick = { navigate(result.url) }) { Text("Open result") }
+                            }
+                            if (index != nativeResults.orEmpty().lastIndex) {
+                                androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                            }
+                        }
+                    }
+                }
+            }
             if (permissionPanel) {
                 val permissionUrl = page?.url ?: address
                 val validPermissionOrigin = SiteOrigin.fromUrl(permissionUrl) != null
@@ -595,7 +664,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                     }
                 }
             }
-            if (page == null && !loading) {
+            if (page == null && nativeResults == null && !loading) {
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
                     verticalArrangement = Arrangement.Center
@@ -612,6 +681,12 @@ private fun BrowserShell(activity: ComponentActivity) {
     }
 }
 
+private fun isDirectVideoUrl(value: String): Boolean {
+    val uri = runCatching { URI(value) }.getOrNull() ?: return false
+    if (!uri.scheme.equals("https", true) || uri.host.isNullOrBlank() || uri.rawUserInfo != null) return false
+    return uri.path.orEmpty().substringAfterLast('.', "").lowercase() in setOf("mp4", "m4v", "3gp", "webm")
+}
+
 private fun elementText(element: HtmlElement): String = buildString {
     fun appendChildren(node: com.fuckass.browser.engine.html.HtmlNode) {
         when (node) {
@@ -622,3 +697,35 @@ private fun elementText(element: HtmlElement): String = buildString {
     }
     appendChildren(element)
 }.replace(Regex("\\s+"), " ").trim()
+
+
+/** Platform-native video playback for an explicitly supplied HTTPS media URL. */
+class NativeVideoPlayerActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val rawUrl = intent.getStringExtra(EXTRA_URL).orEmpty()
+        val uri = runCatching { URI(rawUrl) }.getOrNull()
+        if (uri == null || !uri.scheme.equals("https", true) || uri.host.isNullOrBlank() ||
+            uri.rawUserInfo != null || !isDirectVideoUrl(rawUrl)
+        ) {
+            finish()
+            return
+        }
+        val video = android.widget.VideoView(this)
+        val controls = android.widget.MediaController(this)
+        controls.setAnchorView(video)
+        video.setMediaController(controls)
+        setContentView(video)
+        video.setOnErrorListener { _, what, extra ->
+            android.widget.Toast.makeText(this, "Video playback failed ($what/$extra). Format or server may not be supported.", android.widget.Toast.LENGTH_LONG).show()
+            finish()
+            true
+        }
+        video.setVideoURI(android.net.Uri.parse(rawUrl))
+        video.setOnPreparedListener { player -> player.start() }
+    }
+
+    companion object {
+        const val EXTRA_URL = "com.fuckass.browser.extra.VIDEO_URL"
+    }
+}

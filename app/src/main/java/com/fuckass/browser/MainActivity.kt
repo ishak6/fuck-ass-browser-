@@ -386,7 +386,7 @@ private fun BrowserShell(activity: ComponentActivity) {
                 ) { Text("Refresh") }
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                OutlinedButton(onClick = { dataControlsPanel = true }) {
+                OutlinedButton(onClick = { dataControlsPanel = !dataControlsPanel }) {
                     Text(if (dataControlsPanel) "Hide data controls" else "Privacy & data")
                 }
             }
